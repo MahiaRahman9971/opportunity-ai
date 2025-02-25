@@ -181,7 +181,7 @@ function Home() {
                 <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
                   3
                 </div>
-                <h3 className="text-base font-semibold mb-1 text-center">Take Advantage</h3>
+                <h3 className="text-base font-semibold mb-1 text-center">Take Advantage of Opportunities</h3>
                 <p className="text-sm text-center text-gray-700">Utilize mentorship, community programs, and enrichment activities</p>
               </div>
 
@@ -211,6 +211,19 @@ function Home() {
                 </div>
                 <h3 className="text-base font-semibold mb-1 text-center">Career Success</h3>
                 <p className="text-sm text-center text-gray-700">Build professional skills and networks for long-term financial stability</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Call to Action Section */}
+          <div className="text-center mt-16 mb-8">
+            <h2 className="text-2xl md:text-3xl font-semibold mb-2">Ready to explore opportunities in your area?</h2>
+            <p className="text-xl mb-6">Let&apos;s do it!</p>
+            <div className="flex justify-center">
+              <div className="text-primary text-4xl animate-bounce">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12">
+                  <path d="M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z" />
+                </svg>
               </div>
             </div>
           </div>
