@@ -6,6 +6,7 @@ import Welcome from '../components/Welcome'
 import Learn from '../components/Learn'
 import PersonalizationQuiz from '../components/PersonalizationQuiz'
 import OpportunityMap from '../components/OpportunityMap'  // Add this import
+import TakeAction from '@/components/ActionPlan'
 
 function Home() {
   const progressBarRef = useRef<HTMLDivElement>(null)
@@ -42,6 +43,7 @@ function Home() {
         <Learn />
         <PersonalizationQuiz />
         <OpportunityMap /> 
+        <TakeAction />
       </main>
     </>
   )
