@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Keep existing Tailwind variables */
+  --background: #ffffff;
+  --foreground: #171717;
+  
+  /* Add your custom variables */
+  --primary-color: #6CD9CA;
+  --secondary-color: #9dbda9;
+  --accent-color-1: #9b252f;
+  --accent-color-2: #b65441;
+  --accent-color-3: #d07e59;
+  --accent-color-4: #e5a979;
+  --accent-color-5: #f4d79e;
+  --accent-color-6: #fcfdc1;
+  --accent-color-7: #cdddb5;
+  --accent-color-8: #9dbda9;
+  --accent-color-9: #729d9d;
+  --accent-color-10: #4f7f8b;
+  --accent-color-11: #34687e;
+  --text-color: #333333;
+  --background-color: #ffffff;
+  --section-padding: 4rem 2rem;
+  --font-family: 'Nunito', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    /* You could add dark mode versions of your custom colors here if needed */
+  }
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    min-height: 100vh;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', sans-serif;
+  }
+}
+
+@layer components {
+  /* Navigation */
+  .navigation {
+    @apply fixed top-0 left-0 w-full bg-white shadow-md z-[1000] h-[70px];
+  }
+  
+  .nav-content {
+    @apply px-8 py-4 flex items-center justify-between h-full;
+  }
+  
+  .logo {
+    @apply text-2xl font-bold text-[#6CD9CA];
+  }
+  
+  .nav-links {
+    @apply flex gap-8 items-center;
+  }
+  
+  .nav-link {
+    @apply text-gray-800 no-underline font-semibold px-4 py-2 rounded-full transition-all duration-300 ease-in-out;
+  }
+  
+  .nav-link:hover {
+    @apply bg-[#6CD9CA] text-white;
+  }
+  
+  /* Progress bar styles */
+  .progress-container {
+    @apply fixed top-[70px] left-0 w-full h-1 bg-gray-100 z-[999];
+  }
+
+  .container {
+    @apply w-full mx-auto;
+  }
+  
+  .progress-bar {
+    @apply h-full bg-[#6CD9CA] w-0 transition-all duration-100 ease-in-out;
+  }
+  
+  /* Adjust main content to account for fixed navbar */
+  main {
+    @apply pt-[74px]; /* navbar height + progress bar height */
+  }
+  
+  /* Home page styling */
+  .content {
+    @apply max-w-[1200px] mx-auto px-4 text-center;
+  }
+  
+  .content h1 {
+    @apply text-[#6CD9CA] text-4xl mb-4;
+  }
+  
+  .content h2 {
+    @apply text-xl text-gray-800 mb-5;
+  }
+  
+  .content p {
+    @apply text-base leading-relaxed text-gray-600 mb-4;
+  }
+  
+  .content-section {
+    @apply min-h-0 py-4 relative overflow-hidden;
+  }
+  
+  .discover-box {
+    @apply bg-gray-100 p-5 rounded-lg my-5 mx-auto max-w-[600px];
+  }
+  
+  .discover-box h3 {
+    @apply text-lg text-gray-800 mb-4;
+  }
+  
+  .discover-box ul {
+    @apply list-none p-0 m-0;
+  }
+  
+  .discover-box li {
+    @apply text-[#6CD9CA] my-2.5 text-sm leading-relaxed;
+  }
+  
+  /* Welcome section */
+  .welcome-section {
+    @apply h-screen flex items-center justify-center text-center px-8 py-16;
+  }
+  
+  .welcome-content {
+    @apply max-w-[800px];
+  }
+  
+  .welcome-content h1 {
+    @apply text-5xl mb-4 text-[#6CD9CA];
+  }
+  
+  .subtitle {
+    @apply text-2xl mb-8 font-semibold;
+  }
+  
+  .welcome-description {
+    @apply text-xl mb-8;
+  }
+  
+  .key-points ul {
+    @apply list-none my-8;
+  }
+  
+  .key-points li {
+    @apply my-2 text-lg relative pl-6;
+  }
+  
+  .key-points li:before {
+    content: "•";
+    @apply text-[#6CD9CA] font-bold absolute left-0;
+  }
+  
+  .encouragement {
+    @apply text-2xl font-bold text-[#6CD9CA] my-8;
+  }
+  
+  /* Animation for content */
+  .fade-in {
+    @apply opacity-0 animate-fadeIn;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
