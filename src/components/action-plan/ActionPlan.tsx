@@ -1,12 +1,28 @@
 'use client'
 
 import React, { useState } from 'react'
+import StayAndImprove from './Stay'
 
 const TakeAction = () => {
   const [selectedAction, setSelectedAction] = useState<'stay' | 'move' | null>(null)
+  const [savedChoices, setSavedChoices] = useState<{
+    town: string;
+    selectedSchool: string | null;
+    selectedCommunityPrograms: string[];
+  } | null>(null)
 
   const handleActionSelect = (action: 'stay' | 'move') => {
     setSelectedAction(action)
+  }
+
+  const handleSaveChoices = (choices: {
+    town: string;
+    selectedSchool: string | null;
+    selectedCommunityPrograms: string[];
+  }) => {
+    setSavedChoices(choices)
+    // You could also trigger additional actions here, 
+    // like saving to a backend or progressing to the next step
   }
 
   return (
@@ -61,9 +77,10 @@ const TakeAction = () => {
             <h3 className="text-2xl font-bold mb-4">Stay & Improve</h3>
             <p className="mb-4">Work with your community to improve opportunities:</p>
             <ul className="list-disc list-inside mb-6 text-left">
-                <li>Learn more about your community&apos;s opportunities</li>
-                <li>Find better schools</li>
-                <li>Discover community programs</li>
+              <li>Join the PTA or school board</li>
+              <li>Advocate for better community programs</li>
+              <li>Connect with local representatives</li>
+              <li>Start community initiatives</li>
             </ul>
             <button 
               className={`
@@ -92,7 +109,8 @@ const TakeAction = () => {
             <p className="mb-4">Find communities with better opportunities:</p>
             <ul className="list-disc list-inside mb-6 text-left">
               <li>Compare different neighborhoods</li>
-              <li>Discover communities</li>
+              <li>Find better schools</li>
+              <li>Discover available resources</li>
               <li>Plan your move</li>
             </ul>
             <button 
@@ -110,22 +128,22 @@ const TakeAction = () => {
         </div>
 
         {/* Action Details Section (conditionally rendered) */}
-        {selectedAction && (
-          <div className="mt-12 p-6 bg-[#6CD9CA] bg-opacity-10 rounded-lg">
-            <h3 className="text-2xl font-semibold mb-4">
-              {selectedAction === 'stay' ? 'Community Improvement' : 'New Area Exploration'}
-            </h3>
-            {selectedAction === 'stay' ? (
-              <div>
-                <p>Let&apos;s work together to enhance your current community&apos;s opportunities.</p>
-                {/* Add more detailed content for stay option */}
-              </div>
-            ) : (
-              <div>
-                <p>Exploring new areas with better opportunities for your family.</p>
-                {/* Add more detailed content for move option */}
-              </div>
-            )}
+        {selectedAction === 'stay' && (
+          <StayAndImprove onSaveChoices={handleSaveChoices} />
+        )}
+
+        {/* Saved Choices Summary */}
+        {savedChoices && (
+          <div className="mt-12 bg-[#6CD9CA] bg-opacity-10 p-6 rounded-lg">
+            <h3 className="text-2xl font-semibold mb-4">Your Saved Choices</h3>
+            <div className="space-y-2">
+              <p><strong>Town:</strong> {savedChoices.town}</p>
+              <p><strong>Selected School:</strong> {savedChoices.selectedSchool}</p>
+              <p>
+                <strong>Selected Community Programs:</strong>{' '}
+                {savedChoices.selectedCommunityPrograms.join(', ')}
+              </p>
+            </div>
           </div>
         )}
       </div>

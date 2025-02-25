@@ -6,7 +6,7 @@ import Welcome from '../components/Welcome'
 import Learn from '../components/Learn'
 import PersonalizationQuiz from '../components/PersonalizationQuiz'
 import OpportunityMap from '../components/OpportunityMap'  // Add this import
-import TakeAction from '@/components/ActionPlan'
+import TakeAction from '@/components/action-plan/ActionPlan'
 
 function Home() {
   const progressBarRef = useRef<HTMLDivElement>(null)
