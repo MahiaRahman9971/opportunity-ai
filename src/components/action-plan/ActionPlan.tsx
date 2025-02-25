@@ -1,25 +1,24 @@
 'use client'
 
 import React, { useState } from 'react'
-import StayAndImprove from './Stay'
+import Stay from './Stay'
+import Move from './Move'
+
+interface SavedChoices {
+  town: string;
+  selectedSchool: string | null;
+  selectedCommunityPrograms: string[];
+}
 
 const TakeAction = () => {
   const [selectedAction, setSelectedAction] = useState<'stay' | 'move' | null>(null)
-  const [savedChoices, setSavedChoices] = useState<{
-    town: string;
-    selectedSchool: string | null;
-    selectedCommunityPrograms: string[];
-  } | null>(null)
+  const [savedChoices, setSavedChoices] = useState<SavedChoices | null>(null)
 
   const handleActionSelect = (action: 'stay' | 'move') => {
     setSelectedAction(action)
   }
 
-  const handleSaveChoices = (choices: {
-    town: string;
-    selectedSchool: string | null;
-    selectedCommunityPrograms: string[];
-  }) => {
+  const handleSaveChoices = (choices: SavedChoices) => {
     setSavedChoices(choices)
     // You could also trigger additional actions here, 
     // like saving to a backend or progressing to the next step
@@ -129,7 +128,10 @@ const TakeAction = () => {
 
         {/* Action Details Section (conditionally rendered) */}
         {selectedAction === 'stay' && (
-          <StayAndImprove onSaveChoices={handleSaveChoices} />
+          <Stay onSaveChoices={handleSaveChoices} />
+        )}
+        {selectedAction === 'move' && (
+          <Move onSaveChoices={handleSaveChoices} />
         )}
 
         {/* Saved Choices Summary */}
