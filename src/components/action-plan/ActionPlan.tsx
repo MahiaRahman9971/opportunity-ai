@@ -1,5 +1,4 @@
 'use client'
-
 import React, { useState } from 'react'
 import Stay from './Stay'
 import Move from './Move'
@@ -8,22 +7,31 @@ interface SavedChoices {
   town: string;
   selectedSchool: string | null;
   selectedCommunityPrograms: string[];
+  selectedNeighborhood?: string;
+  selectedHousingType?: string;
 }
 
-const TakeAction = () => {
+interface TakeActionProps {
+  onSaveActionAndChoices?: (action: 'stay' | 'move', choices: SavedChoices) => void;
+}
+
+const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
   const [selectedAction, setSelectedAction] = useState<'stay' | 'move' | null>(null)
   const [savedChoices, setSavedChoices] = useState<SavedChoices | null>(null)
-
+  
   const handleActionSelect = (action: 'stay' | 'move') => {
     setSelectedAction(action)
   }
-
+  
   const handleSaveChoices = (choices: SavedChoices) => {
     setSavedChoices(choices)
-    // You could also trigger additional actions here, 
-    // like saving to a backend or progressing to the next step
+    
+    // Pass choices up to parent component along with selected action
+    if (onSaveActionAndChoices && selectedAction) {
+      onSaveActionAndChoices(selectedAction, choices)
+    }
   }
-
+  
   return (
     <section 
       id="take-action" 
@@ -33,7 +41,6 @@ const TakeAction = () => {
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Take Action</h1>
         <p className="text-xl">Based on your community&apos;s opportunity score, here are some actions you can consider:</p>
       </div>
-
       <div className="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-8">
         {/* Community Score */}
         <div className="text-center">
@@ -44,7 +51,6 @@ const TakeAction = () => {
             </span>
           </div>
         </div>
-
         {/* Areas for Improvement */}
         <div className="text-center">
           <h3 className="text-xl font-semibold mb-4">Areas for Improvement</h3>
@@ -58,7 +64,6 @@ const TakeAction = () => {
           </ul>
         </div>
       </div>
-
       <div className="mt-16 text-center">
         <h2 className="text-2xl md:text-3xl font-semibold mb-6">What would you like to do?</h2>
         
@@ -93,7 +98,6 @@ const TakeAction = () => {
               Choose This Option
             </button>
           </div>
-
           {/* Explore New Areas Option */}
           <div 
             className={`
@@ -125,7 +129,6 @@ const TakeAction = () => {
             </button>
           </div>
         </div>
-
         {/* Action Details Section (conditionally rendered) */}
         {selectedAction === 'stay' && (
           <Stay onSaveChoices={handleSaveChoices} />
@@ -133,18 +136,23 @@ const TakeAction = () => {
         {selectedAction === 'move' && (
           <Move onSaveChoices={handleSaveChoices} />
         )}
-
         {/* Saved Choices Summary */}
         {savedChoices && (
           <div className="mt-12 bg-[#6CD9CA] bg-opacity-10 p-6 rounded-lg">
             <h3 className="text-2xl font-semibold mb-4">Your Saved Choices</h3>
             <div className="space-y-2">
               <p><strong>Town:</strong> {savedChoices.town}</p>
+              {selectedAction === 'move' && savedChoices.selectedNeighborhood && (
+                <p><strong>Selected Neighborhood:</strong> {savedChoices.selectedNeighborhood}</p>
+              )}
               <p><strong>Selected School:</strong> {savedChoices.selectedSchool}</p>
               <p>
                 <strong>Selected Community Programs:</strong>{' '}
                 {savedChoices.selectedCommunityPrograms.join(', ')}
               </p>
+              {selectedAction === 'move' && savedChoices.selectedHousingType && (
+                <p><strong>Housing Type:</strong> {savedChoices.selectedHousingType}</p>
+              )}
             </div>
           </div>
         )}

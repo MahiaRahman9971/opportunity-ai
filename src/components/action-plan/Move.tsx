@@ -1,12 +1,14 @@
 'use client'
 import React, { useState } from 'react'
-import { School } from 'lucide-react'
+import { School, Home } from 'lucide-react'
+
 // Mock data - in a real application, this would come from a database or API
 const townData = {
   name: 'Arlington Heights',
   website: 'https://www.arlingtonheights.gov',
   description: 'A vibrant suburban community known for excellent educational opportunities and strong family support systems. Located in a region with diverse economic prospects and community-driven initiatives.',
 }
+
 const neighborhoodData = {
   topNeighborhoods: [
     { name: 'Arlington Heights', score: 9.2, description: 'Family-friendly area with excellent schools' },
@@ -14,6 +16,7 @@ const neighborhoodData = {
     { name: 'Greenwood Estates', score: 8.5, description: 'Quiet suburban neighborhood with parks' }
   ]
 }
+
 const schoolData = [
   {
     name: 'Arlington Elementary',
@@ -34,6 +37,7 @@ const schoolData = [
     website: 'https://www.greenwoodschool.edu'
   }
 ]
+
 const communityProgramData = [
   {
     name: 'Arlington Youth Leadership',
@@ -51,6 +55,7 @@ const communityProgramData = [
     website: 'https://www.creativearts.org'
   }
 ]
+
 const communityDemographics = {
   population: 45672,
   medianAge: 38.5,
@@ -69,6 +74,7 @@ const communityDemographics = {
     { level: 'Less than High School', percentage: 5 }
   ]
 }
+
 const housingOptions = [
   {
     type: 'Single Family Home',
@@ -89,20 +95,28 @@ const housingOptions = [
     description: 'Convenient options with amenities'
   }
 ]
+
 interface MoveProps {
   onSaveChoices?: (choices: {
     town: string;
     selectedSchool: string | null;
     selectedCommunityPrograms: string[];
+    selectedNeighborhood?: string;
+    selectedHousingType?: string;
   }) => void;
 }
+
 const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
   const [selectedCommunityPrograms, setSelectedCommunityPrograms] = useState<string[]>([])
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null)
+  const [selectedHousingType, setSelectedHousingType] = useState<string | null>(null)
   const [zipCode, setZipCode] = useState('')
+
   const handleSchoolSelect = (schoolName: string) => {
     setSelectedSchool(schoolName)
   }
+
   const handleCommunityProgramToggle = (programName: string) => {
     setSelectedCommunityPrograms(prev => 
       prev.includes(programName)
@@ -110,19 +124,39 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
         : [...prev, programName]
     )
   }
+
+  const handleNeighborhoodSelect = (neighborhoodName: string) => {
+    setSelectedNeighborhood(neighborhoodName)
+  }
+
+  const handleHousingTypeSelect = (housingType: string) => {
+    setSelectedHousingType(housingType)
+  }
+
   const handleZipCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setZipCode(e.target.value)
   }
+
   const handleSaveChoices = () => {
     if (onSaveChoices && selectedSchool && selectedCommunityPrograms.length > 0) {
       const choices = {
         town: townData.name,
         selectedSchool,
-        selectedCommunityPrograms
+        selectedCommunityPrograms,
+        selectedNeighborhood: selectedNeighborhood || undefined,
+        selectedHousingType: selectedHousingType || undefined
       }
       onSaveChoices(choices)
     }
   }
+
+  const hasRequiredSelections = 
+    selectedSchool && 
+    selectedCommunityPrograms.length > 0 && 
+    zipCode && 
+    selectedNeighborhood && 
+    selectedHousingType;
+
   return (
     <div className="space-y-12 mt-16">
       {/* ZIP Code Input */}
@@ -141,6 +175,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
           />
         </div>
       </div>
+
       {/* Render following sections only when ZIP code is entered */}
       {zipCode && (
         <>
@@ -166,27 +201,45 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
               <p><strong>Description:</strong> {townData.description}</p>
             </div>
           </div>
-          {/* Opportunity Map & Top Neighborhoods */}
-          <div className="bg-white shadow-md rounded-lg p-6 flex">
-            <div className="w-1/2 pr-4">
-              <p className="text-gray-500 text-center py-20">Opportunity Map Coming Soon</p>
-            </div>
-            <div className="w-1/2 pl-4">
-              <h3 className="text-2xl font-semibold mb-4">Top Neighborhoods in {zipCode}</h3>
-              {neighborhoodData.topNeighborhoods.map((neighborhood) => (
-                <div 
-                  key={neighborhood.name} 
-                  className="border rounded-lg p-4 mb-4 hover:bg-[#6CD9CA] hover:bg-opacity-10"
-                >
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-xl font-semibold">{neighborhood.name}</h4>
-                    <span className="text-sm text-gray-600">Score: {neighborhood.score}/10</span>
+
+          {/* Opportunity Map & Top Neighborhoods - UPDATED WITH SELECTION */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <div className="flex flex-col lg:flex-row">
+              <div className="w-full lg:w-1/2 pr-0 lg:pr-4 mb-6 lg:mb-0">
+                <p className="text-gray-500 text-center py-20">Opportunity Map Coming Soon</p>
+              </div>
+              <div className="w-full lg:w-1/2 pl-0 lg:pl-4">
+                <h3 className="text-2xl font-semibold mb-4">Top Neighborhoods in {zipCode}</h3>
+                <p className="mb-4">Select a neighborhood you&apos;re interested in:</p>
+                
+                {neighborhoodData.topNeighborhoods.map((neighborhood) => (
+                  <div 
+                    key={neighborhood.name} 
+                    className={`
+                      border rounded-lg p-4 mb-4 cursor-pointer transition-all duration-300
+                      ${selectedNeighborhood === neighborhood.name 
+                        ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
+                        : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
+                    `}
+                    onClick={() => handleNeighborhoodSelect(neighborhood.name)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xl font-semibold">{neighborhood.name}</h4>
+                      <span className="text-sm text-gray-600">Score: {neighborhood.score}/10</span>
+                    </div>
+                    <p className="text-gray-700 mt-2">{neighborhood.description}</p>
                   </div>
-                  <p className="text-gray-700 mt-2">{neighborhood.description}</p>
-                </div>
-              ))}
+                ))}
+
+                {selectedNeighborhood && (
+                  <p className="mt-4 text-lg font-semibold">
+                    {selectedNeighborhood} looks like a great neighborhood for your family!
+                  </p>
+                )}
+              </div>
             </div>
           </div>
+
           {/* Local Schools */}
           <div className="bg-white shadow-md rounded-lg p-6">
             <h3 className="text-2xl font-semibold mb-4">Local Schools</h3>
@@ -225,12 +278,14 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
                 </div>
               ))}
             </div>
+
             {selectedSchool && (
               <p className="mt-4 text-lg font-semibold">
                 {selectedSchool} school looks like a great option for your child!
               </p>
             )}
           </div>
+
           {/* Community Programs */}
           <div className="bg-white shadow-md rounded-lg p-6">
             <h3 className="text-2xl font-semibold mb-4">Community Programs</h3>
@@ -265,12 +320,14 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
                 </div>
               ))}
             </div>
+
             {selectedCommunityPrograms.length > 0 && (
               <p className="mt-4 text-lg font-semibold">
                 {selectedCommunityPrograms.join(', ')} {selectedCommunityPrograms.length === 1 ? 'looks' : 'look'} like a great option for your child!
               </p>
             )}
           </div>
+
           {/* Community Demographics */}
           <div className="bg-white shadow-md rounded-lg p-6">
             <h3 className="text-2xl font-semibold mb-6 text-center">Community Demographics</h3>
@@ -315,16 +372,28 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
               </div>
             </div>
           </div>
-          {/* Housing Options */}
+
+          {/* Housing Options - UPDATED WITH SELECTION */}
           <div className="bg-white shadow-md rounded-lg p-6">
             <h3 className="text-2xl font-semibold mb-6 text-center">Housing Options</h3>
+            <p className="mb-4 text-center">Select a housing type you&apos;re interested in:</p>
+            
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {housingOptions.map((option) => (
                 <div 
                   key={option.type}
-                  className="border rounded-lg p-4 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10 transition-colors"
+                  className={`
+                    border rounded-lg p-4 cursor-pointer transition-all duration-300
+                    ${selectedHousingType === option.type 
+                      ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
+                      : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
+                  `}
+                  onClick={() => handleHousingTypeSelect(option.type)}
                 >
-                  <h4 className="text-xl font-semibold mb-2">{option.type}</h4>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-xl font-semibold">{option.type}</h4>
+                    <Home className="text-[#6CD9CA]" size={20} />
+                  </div>
                   <div className="space-y-2 text-gray-700">
                     <p><strong>Price Range:</strong> {option.priceRange}</p>
                     <p><strong>Size:</strong> {option.averageSize}</p>
@@ -333,6 +402,12 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
                 </div>
               ))}
             </div>
+            
+            {selectedHousingType && (
+              <p className="mt-4 mb-6 text-lg font-semibold text-center">
+                {selectedHousingType} seems like a good fit for your family!
+              </p>
+            )}
             
             <h4 className="text-xl font-semibold mb-4 text-center">Find Housing On:</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -370,8 +445,9 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
               </a>
             </div>
           </div>
+
           {/* Save Choices Button */}
-          {selectedSchool && selectedCommunityPrograms.length > 0 && (
+          {hasRequiredSelections ? (
             <div className="text-center">
               <button 
                 onClick={handleSaveChoices}
@@ -380,10 +456,15 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices }) => {
                 Save My Choices
               </button>
             </div>
+          ) : (
+            <div className="text-center text-gray-600">
+              <p>Please select a neighborhood, school, housing type, and at least one community program to continue</p>
+            </div>
           )}
         </>
       )}
     </div>
   )
 }
+
 export default Move
