@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+// Import commented out as it's not used but may be needed in the future
+// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 
 // Create a function to get an S3 client for a specific region
@@ -25,7 +26,7 @@ const fetchFromS3WithRegionFallback = async (bucket: string, key: string) => {
     'eu-west-1'
   ];
   
-  let lastError: any = null;
+  let lastError: Error | null = null;
   
   // Try each region
   for (const region of regionsToTry) {
@@ -36,12 +37,13 @@ const fetchFromS3WithRegionFallback = async (bucket: string, key: string) => {
       
       console.log(`Successfully fetched from S3 using region: ${region}`);
       return response;
-    } catch (error: any) {
-      console.error(`Error fetching from S3 with region ${region}:`, error.message);
+    } catch (error) {
+      const err = error as { name?: string; message: string; $metadata?: { httpHeaders?: Record<string, string> } };
+      console.error(`Error fetching from S3 with region ${region}:`, err.message);
       
       // If we get a PermanentRedirect error with the correct region info, use that region
-      if (error.name === 'PermanentRedirect' && error.$metadata?.httpHeaders?.['x-amz-bucket-region']) {
-        const correctRegion = error.$metadata.httpHeaders['x-amz-bucket-region'];
+      if (err.name === 'PermanentRedirect' && err.$metadata?.httpHeaders?.['x-amz-bucket-region']) {
+        const correctRegion = err.$metadata.httpHeaders['x-amz-bucket-region'];
         console.log(`Detected correct region from redirect: ${correctRegion}`);
         
         try {
@@ -56,7 +58,7 @@ const fetchFromS3WithRegionFallback = async (bucket: string, key: string) => {
         }
       }
       
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
   
@@ -118,7 +120,7 @@ export async function GET(request: NextRequest) {
       try {
         const jsonData = JSON.parse(bodyContents);
         return NextResponse.json(jsonData);
-      } catch (e) {
+      } catch {
         // If parsing fails, return the raw text
         return new NextResponse(bodyContents, {
           headers: {

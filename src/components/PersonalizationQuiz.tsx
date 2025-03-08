@@ -3,12 +3,8 @@ import { useState } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
 import { usePersonalization, PersonalizationData } from './PersonalizationContext';
 
-type ChildInfo = {
-  name: string;
-  gender: string;
-  age: string;
-  ethnicity: string;
-};
+// Child information structure is defined in PersonalizationData type in PersonalizationContext
+// No need for a separate interface here
 
 const PersonalizationQuiz = () => {
   const { setFullData } = usePersonalization();

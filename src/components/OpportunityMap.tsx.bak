@@ -46,15 +46,12 @@ interface GeocodingResponse {
   }>;
 }
 
-// Define geometry types compatible with Mapbox GL
-type Geometry = {
-  type: string;
-  coordinates: number[] | number[][] | number[][][] | number[][][][];
-};
-
 interface CensusTractFeature {
   type: string;
-  geometry: Geometry;
+  geometry: {
+    type: string;
+    coordinates: number[][][];
+  };
   properties: {
     GEOID?: string;
     STATE?: string;
@@ -203,7 +200,7 @@ const [, setSelectedTractId] = useState<string | null>(null);
                 console.log('Map move ended, querying features at point');
                 
                 // Get all features from the census-tracts source
-                const features = map.current?.querySourceFeatures('census-tracts') || [];
+                const features = map.current?.querySourceFeatures('census-tracts');
                 console.log(`Found ${features.length} total features in source`);
                 
                 // Find the feature that contains the coordinates using a manual check
@@ -279,7 +276,7 @@ const [, setSelectedTractId] = useState<string | null>(null);
                   const renderedFeatures = map.current?.queryRenderedFeatures(
                     map.current.project([longitude, latitude]),
                     { layers: ['census-fills'] }
-                  ) || [];
+                  );
                   
                   console.log(`Found ${renderedFeatures.length} rendered features at point`);
                   
@@ -376,22 +373,12 @@ const [, setSelectedTractId] = useState<string | null>(null);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getIncomeRange]);
   
   // Helper function to get a bounding box from a geometry
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getBoundingBox = (geometry: { type: string; coordinates?: any; geometries?: any[] }): number[] | null => {
+  const getBoundingBox = (geometry: { type: string; coordinates: number[][][] }): number[] | null => {
     try {
-      if (!geometry || !geometry.coordinates) return null;
-      
-      // Handle different geometry types
-      if (geometry.type === 'Point') {
-        const [x, y] = geometry.coordinates;
-        return [x - 0.001, y - 0.001, x + 0.001, y + 0.001]; // Small buffer around point
-      }
-      
-      if (!geometry.coordinates.length) return null;
+      if (!geometry || !geometry.coordinates || !geometry.coordinates.length) return null;
       
       let minX = Infinity;
       let minY = Infinity;
@@ -478,8 +465,7 @@ const [, setSelectedTractId] = useState<string | null>(null);
         type: 'geojson',
         data: {
           type: 'Feature',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          geometry: tractFeature.geometry as any,
+          geometry: tractFeature.geometry,
           properties: {}
         }
       });
@@ -503,7 +489,7 @@ const [, setSelectedTractId] = useState<string | null>(null);
       
       // Ensure the highlight layer is at the very top of the layer stack
       // This is crucial to make sure it appears above all other layers
-      const allLayers = map.current?.getStyle()?.layers || [];
+      const allLayers = map.current.getStyle().layers || [];
       const topLayerId = allLayers.length > 0 ? allLayers[allLayers.length - 1].id : null;
       
       if (topLayerId && topLayerId !== 'selected-tract-outline') {
@@ -516,9 +502,42 @@ const [, setSelectedTractId] = useState<string | null>(null);
     } catch (error) {
       console.error('Error adding tract highlight:', error);
     }
-  }, [map]);
+  }, []);
   
-  // Point-in-polygon functionality is handled by Mapbox's queryRenderedFeatures
+  // Helper function to check if a point is inside a polygon (removed as it's not used)
+  /*
+  const isPointInPolygon = (point: [number, number], geometry: { type: string; coordinates: number[][][] }): boolean => {
+    try {
+      if (!map.current || !geometry) {
+        console.log('Map or geometry not available for point-in-polygon check');
+        return false;
+      }
+      
+      // Use Mapbox's built-in spatial querying
+      // Convert the geographic point to pixel coordinates
+      const screenPoint = map.current.project(point);
+      
+      // Query features at this point
+      const features = map.current.queryRenderedFeatures(screenPoint, { layers: ['census-fills'] });
+      
+      // Log for debugging
+      console.log(`Found ${features.length} features at point [${point[0]}, ${point[1]}]`);
+      
+      if (features.length > 0) {
+        // For more precise checking, we could compare the feature IDs or properties
+        // but for now, we'll just check if any feature was found
+        return true;
+      }
+      
+      // If we're zoomed out too far, the point might not be in any visible feature
+      // In that case, we'll need to use a more sophisticated approach
+      // For now, we'll just return false
+      return false;
+    } catch (e) {
+      console.error('Error in point-in-polygon check:', e);
+      return false;
+    }
+  };
 
   // Zoom to address when it changes
   useEffect(() => {
@@ -553,11 +572,9 @@ const [, setSelectedTractId] = useState<string | null>(null);
     // Remove event listeners
     if (map.current && map.current.getLayer('census-fills')) {
       try {
-        // Use empty function as placeholder since we can't access the original handlers
-        const noop = () => {};
-        map.current.off('click', 'census-fills', noop);
-        map.current.off('mouseenter', 'census-fills', noop);
-        map.current.off('mouseleave', 'census-fills', noop);
+        map.current.off('click', 'census-fills');
+        map.current.off('mouseenter', 'census-fills');
+        map.current.off('mouseleave', 'census-fills');
       } catch (e) {
         console.log(`Error removing event listeners for census-fills:`, e);
       }
@@ -1226,7 +1243,7 @@ const [, setSelectedTractId] = useState<string | null>(null);
         legend.remove();
       }
     };
-  }, [loadCensusTracts, data.address, findCensusTractFromAddress]);
+  }, [loadCensusTracts]);
 
   // Helper function to render score bars
   const renderScoreBar = (score: number | null, label: string) => (
