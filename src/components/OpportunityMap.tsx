@@ -634,21 +634,20 @@ const [, setSelectedTractId] = useState<string | null>(null);
     // Note: We don't remove the streets source as it's a common base layer
   }, []);
   
-  // Function to load census tracts data
+  // Memoized function to load census tracts data
   const loadCensusTracts = useCallback(async () => {
     if (!map.current || !dataLoaded) {
       console.log('Map or data not ready, skipping loadCensusTracts');
       return;
     }
     
-    // Make sure the map is fully loaded
-    if (!map.current.loaded()) {
-      console.log('Map not fully loaded, waiting...');
-      // Try again after a short delay
-      setTimeout(() => loadCensusTracts(), 500);
+    // Check if map is already displaying census tracts
+    if (map.current.getSource('census-tracts')) {
+      console.log('Census tracts already loaded, skipping');
       return;
     }
     
+    console.log('Starting to load census tracts...');
     setLoading(true);
     
     try {
@@ -665,9 +664,11 @@ const [, setSelectedTractId] = useState<string | null>(null);
         features: CensusTractFeature[];
       }
 
-      // Load GeoJSON file from S3 for census tracts using our utility function
+      // Load GeoJSON file from S3 for census tracts using our utility function with caching
+      console.log('Fetching census tract GeoJSON data...');
       let censusTractsData: GeoJSONData;
       try {
+        // Use the cached version if available
         censusTractsData = await getJSONFromS3<GeoJSONData>(
           'thesismr', 
           'geojson/census-tracts.geojson'
@@ -678,10 +679,11 @@ const [, setSelectedTractId] = useState<string | null>(null);
           throw new Error('Invalid GeoJSON structure: missing features array');
         }
         
-        console.log('Loaded census tracts GeoJSON with features:', censusTractsData.features.length);
+        console.log('Successfully loaded census tracts GeoJSON with features:', censusTractsData.features.length);
       } catch (error) {
         console.error('Error loading GeoJSON:', error);
         setError('Failed to load map data. Please try again later.');
+        setLoading(false);
         return;
       }
       
@@ -1210,11 +1212,24 @@ const [, setSelectedTractId] = useState<string | null>(null);
       center: [-98.5795, 39.8283], // Centered on USA
       zoom: 3.5,
       minZoom: 2,
-      maxZoom: 12
+      maxZoom: 12,
+      preserveDrawingBuffer: true, // Ensure the map is visible in all browsers
+      renderWorldCopies: false // Prevent rendering multiple world copies
     });
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    // Listen for style.load event which is more reliable than the map load event
+    map.current.on('style.load', () => {
+      console.log('Map style loaded successfully');
+      setMapStyleLoaded(true);
+      
+      // Force a resize to ensure the map renders correctly
+      if (map.current) {
+        map.current.resize();
+      }
+    });
     
     // Add a legend
     map.current.on('load', () => {
@@ -1270,14 +1285,6 @@ const [, setSelectedTractId] = useState<string | null>(null);
       if (mapContainer.current) {
         mapContainer.current.appendChild(legend);
       }
-      
-      // Load census tracts data
-      loadCensusTracts().then(() => {
-        // If we already have an address, find the census tract for it
-        if (typeof data.address === 'string' && data.address.trim() !== '') {
-          findCensusTractFromAddress(data.address);
-        }
-      });
     });
     
     // Clean up on unmount
@@ -1293,7 +1300,37 @@ const [, setSelectedTractId] = useState<string | null>(null);
         legend.remove();
       }
     };
-  }, [loadCensusTracts, data.address, findCensusTractFromAddress]);
+  }, []);
+  
+  // Add a state to track if the map style has loaded
+  const [mapStyleLoaded, setMapStyleLoaded] = useState<boolean>(false);
+
+  // Separate useEffect to handle loading census tracts when both map and data are ready
+  useEffect(() => {
+    // Check if both map and data are ready
+    if (map.current && dataLoaded && mapStyleLoaded) {
+      console.log('Map, style, and data are all ready, loading census tracts');
+      
+      // Force a re-render of the map to ensure it's visible
+      if (map.current) {
+        map.current.resize();
+        
+        // Add a slight delay to ensure the map is fully rendered
+        setTimeout(() => {
+          loadCensusTracts().then(() => {
+            console.log('Census tracts loaded successfully');
+            // If we already have an address, find the census tract for it
+            if (typeof data.address === 'string' && data.address.trim() !== '') {
+              findCensusTractFromAddress(data.address);
+            }
+          }).catch(err => {
+            console.error('Error loading census tracts:', err);
+            setError('Failed to load map data. Please try again.');
+          });
+        }, 500);
+      }
+    }
+  }, [map.current, dataLoaded, mapStyleLoaded, loadCensusTracts, data.address, findCensusTractFromAddress]);
 
   // Helper function to render score bars
   const renderScoreBar = (score: number | null, label: string) => (

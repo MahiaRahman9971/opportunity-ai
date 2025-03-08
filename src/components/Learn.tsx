@@ -14,7 +14,7 @@ const Learn = () => {
       <div className="mb-16 relative">
         <div className="mb-6 relative">
           <Image 
-            src="/opportunity-map.jpg" 
+            src="/images/opportunity-map.jpg" 
             alt="Map of opportunity in America" 
             width={800} 
             height={480} 
