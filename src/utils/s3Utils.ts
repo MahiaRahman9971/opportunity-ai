@@ -43,7 +43,7 @@ export const getCSVFromS3 = async <T>(bucket: string, key: string): Promise<T[]>
         complete: (results) => {
           resolve(results.data as T[]);
         },
-        error: (error) => {
+        error: (error: Error) => {
           reject(error);
         }
       });

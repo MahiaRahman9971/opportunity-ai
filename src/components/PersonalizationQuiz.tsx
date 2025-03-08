@@ -11,8 +11,7 @@ const PersonalizationQuiz = () => {
   
   // Initialize formData with ALL fields, including address
   const [formData, setFormData] = useState<PersonalizationData>({
-    address: '', // Added address field with empty string
-    zipCode: '',
+    address: '', // Address field for location
     income: '',
     country: '',
     children: [{ name: '', gender: '', age: '', ethnicity: '' }]

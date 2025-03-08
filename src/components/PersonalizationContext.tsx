@@ -24,7 +24,7 @@ interface PersonalizationContextType {
 
 // Initial default values
 const defaultData: PersonalizationData = {
-  zipCode: '',
+  address: '',
   income: '',
   country: '',
   children: []

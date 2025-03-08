@@ -47,13 +47,41 @@ interface GeocodingResponse {
 }
 
 // Define geometry types compatible with Mapbox GL
-type Geometry = {
-  type: string;
-  coordinates: number[] | number[][] | number[][][] | number[][][][];
-};
+
+interface PointGeometry {
+  type: 'Point';
+  coordinates: number[];
+}
+
+interface LineStringGeometry {
+  type: 'LineString';
+  coordinates: number[][];
+}
+
+interface PolygonGeometry {
+  type: 'Polygon';
+  coordinates: number[][][];
+}
+
+interface MultiPointGeometry {
+  type: 'MultiPoint';
+  coordinates: number[][];
+}
+
+interface MultiLineStringGeometry {
+  type: 'MultiLineString';
+  coordinates: number[][][];
+}
+
+interface MultiPolygonGeometry {
+  type: 'MultiPolygon';
+  coordinates: number[][][][];
+}
+
+type Geometry = PointGeometry | LineStringGeometry | PolygonGeometry | MultiPointGeometry | MultiLineStringGeometry | MultiPolygonGeometry;
 
 interface CensusTractFeature {
-  type: string;
+  type: "Feature";
   geometry: Geometry;
   properties: {
     GEOID?: string;
@@ -631,10 +659,16 @@ const [, setSelectedTractId] = useState<string | null>(null);
       const { min, max } = getIncomeRange();
       console.log('Income range:', { min, max });
       
+      // Define the GeoJSON type structure to match what Mapbox expects
+      interface GeoJSONData {
+        type: "FeatureCollection";
+        features: CensusTractFeature[];
+      }
+
       // Load GeoJSON file from S3 for census tracts using our utility function
-      let censusTractsData;
+      let censusTractsData: GeoJSONData;
       try {
-        censusTractsData = await getJSONFromS3(
+        censusTractsData = await getJSONFromS3<GeoJSONData>(
           'thesismr', 
           'geojson/census-tracts.geojson'
         );
@@ -689,9 +723,10 @@ const [, setSelectedTractId] = useState<string | null>(null);
       );
       
       // Enhance the GeoJSON with our income data
-      const enhancedData = {
-        ...censusTractsData,
-        features: censusTractsData.features.map((feature: { properties: Record<string, unknown>; geometry?: { coordinates?: number[][][] | number[][]; type?: string } }) => {
+      const enhancedData: GeoJSONData = {
+        type: "FeatureCollection",
+        features: censusTractsData.features.map((feature: CensusTractFeature) => {
+          // Create a new feature with the correct type
           // Extract tract ID from feature properties
           const props = feature.properties || {};
           
@@ -699,10 +734,11 @@ const [, setSelectedTractId] = useState<string | null>(null);
           let tractId = props.TRACT || '';
           
           // If GEO_ID exists in format "1400000US01051031000", extract the last 11 chars
-          if (props.GEO_ID && props.GEO_ID.length > 11) {
-            const fullId = props.GEO_ID;
-            const stateCode = props.STATE || fullId.substr(9, 2);
-            const countyCode = props.COUNTY || fullId.substr(11, 3);
+          const geoId = props.GEO_ID?.toString() || '';
+          if (geoId && geoId.length > 11) {
+            const fullId = geoId;
+            const stateCode = props.STATE?.toString() || fullId.substr(9, 2);
+            const countyCode = props.COUNTY?.toString() || fullId.substr(11, 3);
             const tractCode = props.TRACT || fullId.substr(14);
             
             // Format to match our data: stateCountyTract (no leading zeros)
@@ -721,9 +757,37 @@ const [, setSelectedTractId] = useState<string | null>(null);
           // Generate regional patterns that match the image reference
           if (!incomeValue) {
             // Extract location information from the feature
-            const centroid = feature.geometry?.coordinates?.[0]?.[0] || [0, 0];
-            const longitude = Array.isArray(centroid) ? centroid[0] : 0;
-            const latitude = Array.isArray(centroid) ? centroid[1] : 0;
+            // Handle different geometry types (Point, LineString, Polygon, etc.)
+            let coordinates: number[] = [0, 0];
+            
+            if (feature.geometry?.type === 'Point' && Array.isArray(feature.geometry.coordinates)) {
+              // Point: coordinates is [longitude, latitude]
+              coordinates = feature.geometry.coordinates as number[];
+            } else if (feature.geometry?.type === 'Polygon' && Array.isArray(feature.geometry.coordinates)) {
+              // Polygon: coordinates is [[[lon, lat], [lon, lat], ...]]
+              // Get the first point of the first ring
+              const polygonCoords = feature.geometry.coordinates as number[][][];
+              if (polygonCoords.length > 0 && polygonCoords[0].length > 0) {
+                coordinates = polygonCoords[0][0];
+              }
+            } else if (feature.geometry?.coordinates) {
+              // Try to get something usable for other geometry types
+              const coords = feature.geometry.coordinates;
+              if (Array.isArray(coords)) {
+                if (Array.isArray(coords[0])) {
+                  if (Array.isArray(coords[0][0])) {
+                    coordinates = coords[0][0] as number[];
+                  } else {
+                    coordinates = coords[0] as number[];
+                  }
+                } else {
+                  coordinates = coords as number[];
+                }
+              }
+            }
+            
+            const longitude = coordinates[0] || 0;
+            const latitude = coordinates[1] || 0;
             
             // Create specific regional patterns to match the reference image
             // Southeast (GA, SC, NC, VA, AL, AR) - mostly red
@@ -794,7 +858,8 @@ const [, setSelectedTractId] = useState<string | null>(null);
           incomeValue = Math.max(20000, Math.min(55500, incomeValue || 35000));
           
           return {
-            ...feature,
+            type: "Feature" as const,
+            geometry: feature.geometry,
             properties: {
               ...feature.properties,
               tractId: tractId,
@@ -1038,15 +1103,17 @@ const [, setSelectedTractId] = useState<string | null>(null);
           const formattedIncome = `$${Math.round(Number(incomeValue)).toLocaleString()}`;
           
           // Create a clean popup with proper formatting
-          activePopup = new mapboxgl.Popup({ closeButton: false })
-            .setLngLat(e.lngLat)
-            .setHTML(`
-              <div style="padding: 8px; font-family: Arial, sans-serif;">
-                <strong>${tractName || 'Census Tract ' + tractId}</strong><br/>
-                <span>Household Income at Age 35: ${formattedIncome}</span>
-              </div>
-            `)
-            .addTo(map.current);
+          if (map.current) {
+            activePopup = new mapboxgl.Popup({ closeButton: false })
+              .setLngLat(e.lngLat)
+              .setHTML(`
+                <div style="padding: 8px; font-family: Arial, sans-serif;">
+                  <strong>${tractName || 'Census Tract ' + tractId}</strong><br/>
+                  <span>Household Income at Age 35: ${formattedIncome}</span>
+                </div>
+              `)
+              .addTo(map.current);
+          }
         }
       });
       
