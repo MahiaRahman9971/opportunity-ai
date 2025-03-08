@@ -450,7 +450,7 @@ const OpportunityMap: React.FC = () => {
       });
       
       // Add a highlighted outline for the selected tract with a thick black border
-      // to match the image provided
+      // to match the image provided - ensure it's added at the very top of all layers
       map.current.addLayer({
         id: 'selected-tract-outline',
         type: 'line',
@@ -465,6 +465,15 @@ const OpportunityMap: React.FC = () => {
           'line-opacity': 1.0 // Fully opaque
         }
       });
+      
+      // Ensure the highlight layer is at the very top of the layer stack
+      // This is crucial to make sure it appears above the street layers
+      const layers = map.current.getStyle().layers || [];
+      if (layers.length > 0 && layers[layers.length - 1].id !== 'selected-tract-outline') {
+        // Move the highlight layer to the top
+        map.current.moveLayer('selected-tract-outline');
+        console.log('Moved highlight layer to top of stack');
+      }
       
       console.log('Successfully added tract highlight');
     } catch (error) {
@@ -530,7 +539,7 @@ const OpportunityMap: React.FC = () => {
       }
     }
     
-    // Remove layers
+    // Remove census tract layers
     ['census-fills', 'census-borders'].forEach(layerId => {
       if (map.current && map.current.getLayer(layerId)) {
         try {
@@ -541,14 +550,36 @@ const OpportunityMap: React.FC = () => {
       }
     });
     
-    // Remove sources
-    if (map.current && map.current.getSource('census-tracts')) {
-      try {
-        map.current.removeSource('census-tracts');
-      } catch (e) {
-        console.log(`Error removing source census-tracts:`, e);
+    // Remove street layers
+    [
+      'streets-highway',
+      'streets-major',
+      'streets-secondary',
+      'streets-tertiary',
+      'streets-minor',
+      'selected-tract-outline'
+    ].forEach(layerId => {
+      if (map.current && map.current.getLayer(layerId)) {
+        try {
+          map.current.removeLayer(layerId);
+        } catch (e) {
+          console.log(`Error removing layer ${layerId}:`, e);
+        }
       }
-    }
+    });
+    
+    // Remove sources
+    ['census-tracts', 'selected-tract-source'].forEach(sourceId => {
+      if (map.current && map.current.getSource(sourceId)) {
+        try {
+          map.current.removeSource(sourceId);
+        } catch (e) {
+          console.log(`Error removing source ${sourceId}:`, e);
+        }
+      }
+    });
+    
+    // Note: We don't remove the streets source as it's a common base layer
   }, []);
   
   // Function to load census tracts data
@@ -750,11 +781,140 @@ const OpportunityMap: React.FC = () => {
         'type': 'line',
         'source': 'census-tracts',
         'paint': {
-          'line-color': '#627BC1',
-          'line-width': 0.5,  // Slightly thicker lines
-          'line-opacity': 0.5  // More visible opacity
+          'line-color': '#888888',  // Gray color for more subtle borders
+          'line-width': 0.5,        // Slightly thicker lines
+          'line-opacity': 0.4       // Slightly reduced opacity for subtlety
         }
       });
+      
+      // Add street layer on top of the census tracts
+      // First check if the streets source already exists
+      if (!map.current.getSource('streets')) {
+        map.current.addSource('streets', {
+          type: 'vector',
+          url: 'mapbox://mapbox.mapbox-streets-v8'
+        });
+      }
+      
+      // Add major roads layer
+      if (!map.current.getLayer('streets-major')) {
+        map.current.addLayer({
+          'id': 'streets-major',
+          'type': 'line',
+          'source': 'streets',
+          'source-layer': 'road',
+          'filter': [
+            'all',
+            ['!', ['has', 'layer']],
+            ['==', ['get', 'class'], 'primary']
+          ],
+          'paint': {
+            'line-color': '#ffffff',
+            'line-width': 2,
+            'line-opacity': 0.8
+          },
+          'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+          }
+        });
+      }
+      
+      // Add secondary roads layer
+      if (!map.current.getLayer('streets-secondary')) {
+        map.current.addLayer({
+          'id': 'streets-secondary',
+          'type': 'line',
+          'source': 'streets',
+          'source-layer': 'road',
+          'filter': [
+            'all',
+            ['!', ['has', 'layer']],
+            ['==', ['get', 'class'], 'secondary']
+          ],
+          'paint': {
+            'line-color': '#ffffff',
+            'line-width': 1.5,
+            'line-opacity': 0.7
+          },
+          'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+          }
+        });
+      }
+      
+      // Add tertiary roads layer
+      if (!map.current.getLayer('streets-tertiary')) {
+        map.current.addLayer({
+          'id': 'streets-tertiary',
+          'type': 'line',
+          'source': 'streets',
+          'source-layer': 'road',
+          'filter': [
+            'all',
+            ['!', ['has', 'layer']],
+            ['==', ['get', 'class'], 'tertiary']
+          ],
+          'paint': {
+            'line-color': '#ffffff',
+            'line-width': 1,
+            'line-opacity': 0.6
+          },
+          'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+          }
+        });
+      }
+      
+      // Add minor roads layer
+      if (!map.current.getLayer('streets-minor')) {
+        map.current.addLayer({
+          'id': 'streets-minor',
+          'type': 'line',
+          'source': 'streets',
+          'source-layer': 'road',
+          'filter': [
+            'all',
+            ['!', ['has', 'layer']],
+            ['==', ['get', 'class'], 'street']
+          ],
+          'paint': {
+            'line-color': '#ffffff',
+            'line-width': 0.75,
+            'line-opacity': 0.5
+          },
+          'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+          }
+        });
+      }
+      
+      // Add highways layer
+      if (!map.current.getLayer('streets-highway')) {
+        map.current.addLayer({
+          'id': 'streets-highway',
+          'type': 'line',
+          'source': 'streets',
+          'source-layer': 'road',
+          'filter': [
+            'all',
+            ['!', ['has', 'layer']],
+            ['==', ['get', 'class'], 'motorway']
+          ],
+          'paint': {
+            'line-color': '#ffffff',
+            'line-width': 3,
+            'line-opacity': 0.9
+          },
+          'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+          }
+        });
+      }
       
       // Track the active popup for removal
       let activePopup: mapboxgl.Popup | null = null;
