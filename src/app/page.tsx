@@ -7,6 +7,7 @@ import PersonalizationQuiz from '../components/PersonalizationQuiz'
 import OpportunityMap from '../components/OpportunityMap'
 import TakeAction from '@/components/action-plan/ActionPlan'
 import NextSteps from '../components/NextSteps'
+import { PersonalizationProvider } from '../components/PersonalizationContext'
 
 interface SavedChoices {
   town: string;
@@ -54,12 +55,14 @@ function Home() {
       <Navbar progressBarRef={progressBarRef as RefObject<HTMLDivElement>} />
       
       <main className="container">
-        <Welcome />
-        <Learn />
-        <PersonalizationQuiz />
-        <OpportunityMap /> 
-        <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
-        <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
+        <PersonalizationProvider>
+          <Welcome />
+          <Learn />
+          <PersonalizationQuiz />
+          <OpportunityMap />
+          <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
+          <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
+        </PersonalizationProvider>
       </main>
     </>
   )

@@ -1,7 +1,7 @@
 'use client'
-
 import { useState } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
+import { usePersonalization, PersonalizationData } from './PersonalizationContext';
 
 type ChildInfo = {
   name: string;
@@ -10,15 +10,12 @@ type ChildInfo = {
   ethnicity: string;
 };
 
-type FormData = {
-  zipCode: string;
-  income: string;
-  country: string;
-  children: ChildInfo[];
-};
-
 const PersonalizationQuiz = () => {
-  const [formData, setFormData] = useState<FormData>({
+  const { setFullData } = usePersonalization();
+  
+  // Initialize formData with ALL fields, including address
+  const [formData, setFormData] = useState<PersonalizationData>({
+    address: '', // Added address field with empty string
     zipCode: '',
     income: '',
     country: '',
@@ -61,6 +58,15 @@ const PersonalizationQuiz = () => {
     try {
       console.log('Submitting form data:', formData);
       
+      // Save to context for use across the site
+      setFullData(formData);
+      
+      // Scroll to the map section
+      const mapSection = document.getElementById('opportunity-map');
+      if (mapSection) {
+        mapSection.scrollIntoView({ behavior: 'smooth' });
+      }
+      
       // Make the API call
       const response = await fetch('/api/save-family-data', { 
         method: 'POST', 
@@ -101,18 +107,16 @@ const PersonalizationQuiz = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label htmlFor="zipCode" className="block text-sm font-medium">
-                  Zip Code<span className="text-red-500">*</span>
+                <label htmlFor="address" className="block text-sm font-medium">
+                  Address<span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  id="zipCode"
-                  name="zipCode"
-                  value={formData.zipCode}
+                  id="address"
+                  name="address"
+                  value={formData.address || ''}
                   onChange={handleParentInfoChange}
-                  placeholder="Enter zip code"
-                  pattern="[0-9]{5}"
-                  maxLength={5}
+                  placeholder="Enter your full address"
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
@@ -126,7 +130,7 @@ const PersonalizationQuiz = () => {
                   <select
                     id="income"
                     name="income"
-                    value={formData.income}
+                    value={formData.income || ''}
                     onChange={handleParentInfoChange}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -152,7 +156,7 @@ const PersonalizationQuiz = () => {
                   type="text"
                   id="country"
                   name="country"
-                  value={formData.country}
+                  value={formData.country || ''}
                   onChange={handleParentInfoChange}
                   placeholder="Enter country"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -180,7 +184,7 @@ const PersonalizationQuiz = () => {
                     type="text"
                     id={`child${index}-name`}
                     name={`child-name`}
-                    value={child.name}
+                    value={child.name || ''}
                     onChange={(e) => handleChildInfoChange(index, e)}
                     placeholder="Enter child's name"
                     required
@@ -197,7 +201,7 @@ const PersonalizationQuiz = () => {
                       <select
                         id={`child${index}-gender`}
                         name={`child-gender`}
-                        value={child.gender}
+                        value={child.gender || ''}
                         onChange={(e) => handleChildInfoChange(index, e)}
                         required
                         className="w-full px-4 py-2 border border-gray-300 rounded-md appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -220,7 +224,7 @@ const PersonalizationQuiz = () => {
                       type="number"
                       id={`child${index}-age`}
                       name={`child-age`}
-                      value={child.age}
+                      value={child.age || ''}
                       onChange={(e) => handleChildInfoChange(index, e)}
                       placeholder="Enter age"
                       min="0"
@@ -238,7 +242,7 @@ const PersonalizationQuiz = () => {
                       <select
                         id={`child${index}-ethnicity`}
                         name={`child-ethnicity`}
-                        value={child.ethnicity}
+                        value={child.ethnicity || ''}
                         onChange={(e) => handleChildInfoChange(index, e)}
                         required
                         className="w-full px-4 py-2 border border-gray-300 rounded-md appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"

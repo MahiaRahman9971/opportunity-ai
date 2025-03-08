@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Papa from 'papaparse';
+import { usePersonalization } from './PersonalizationContext';
 
 // Set Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFoaWFyIiwiYSI6ImNtNDY1YnlwdDB2Z2IybHEwd2w3MHJvb3cifQ.wJqnzFFTwLFwYhiPG3SWJA';
@@ -23,10 +24,46 @@ interface OpportunityData {
   [key: string]: string | number; // Allow for additional properties
 }
 
+interface GeocodingResponse {
+  features: Array<{
+    center: [number, number]; // [longitude, latitude]
+    place_name: string;
+    text: string;
+    context?: Array<{
+      id?: string;
+      text?: string;
+    }>;
+    properties?: {
+      accuracy?: string;
+    };
+    geometry?: {
+      type: string;
+      coordinates: [number, number];
+    };
+  }>;
+}
+
+interface CensusTractFeature {
+  type: string;
+  geometry: any;
+  properties: {
+    GEOID?: string;
+    STATE?: string;
+    COUNTY?: string;
+    TRACT?: string;
+    tractId?: string;
+    name?: string;
+    NAME?: string;
+    NAMELSAD?: string;
+    [key: string]: any;
+  };
+}
+
 const OpportunityMap: React.FC = () => {
+  // Ensure we have default values for all properties in data to prevent undefined values
+  const { data = { address: '', children: [] } } = usePersonalization();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapView, setMapView] = useState<'commuting' | 'census'>('census');
   const [currentZip, setCurrentZip] = useState<string>('');
   const [opportunityScore, setOpportunityScore] = useState<number | null>(null);
   const [factorScores, setFactorScores] = useState<FactorScores>({
@@ -40,6 +77,7 @@ const OpportunityMap: React.FC = () => {
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTractId, setSelectedTractId] = useState<string | null>(null);
   
   // Load opportunity data
   useEffect(() => {
@@ -97,49 +135,403 @@ const OpportunityMap: React.FC = () => {
   }, []);
 
   // Calculate min and max income values for color scaling
+  const incomeRange = { min: 20000, max: 55500 };
+  
+  // Define getIncomeRange before it's used in dependency arrays
   const getIncomeRange = useCallback(() => {
     // Use fixed range values that match the image scale
     // This prevents extreme values from skewing the visualization
-    return { min: 20000, max: 55500 };
+    return incomeRange;
+  }, []);
+
+  // Function to geocode an address and find the census tract
+  const findCensusTractFromAddress = useCallback(async (address: string) => {
+    // Make sure address is a valid non-empty string
+    if (!map.current || typeof address !== 'string' || address.trim() === '') {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Use Mapbox Geocoding API to convert address to coordinates
+      const encodedAddress = encodeURIComponent(address);
+      const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?country=us&access_token=${mapboxgl.accessToken}`;
+      const response = await fetch(geocodeUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Geocoding failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const geocodeData: GeocodingResponse = await response.json();
+      
+      if (geocodeData.features && geocodeData.features.length > 0) {
+        const [longitude, latitude] = geocodeData.features[0].center;
+        const placeName = geocodeData.features[0].place_name;
+        
+        console.log(`Geocoded address to coordinates: [${longitude}, ${latitude}]`);
+        
+        // Zoom to the location
+        map.current.flyTo({
+          center: [longitude, latitude],
+          zoom: 11,
+          essential: true
+        });
+        
+        // Set the location name
+        setCurrentZip(`${placeName}`);
+
+        // Wait for the map to finish moving before querying features
+        const handleMoveEnd = () => {
+          // Remove the event listener to prevent multiple calls
+          map.current?.off('moveend', handleMoveEnd);
+          
+          // Now find which census tract contains this point
+          if (map.current?.getSource('census-tracts')) {
+            setTimeout(() => {
+              try {
+                console.log('Map move ended, querying features at point');
+                
+                // Get all features from the census-tracts source
+                const features = map.current?.querySourceFeatures('census-tracts');
+                console.log(`Found ${features.length} total features in source`);
+                
+                // Find the feature that contains the coordinates using a manual check
+                let foundFeature = false;
+                
+                // Create a manual bounding box around the point for a more reliable check
+                const buffer = 0.01; // Approximately 1km buffer
+                const bbox = [
+                  longitude - buffer,
+                  latitude - buffer,
+                  longitude + buffer,
+                  latitude + buffer
+                ];
+                
+                // Get features that intersect with this bounding box
+                for (const feature of features) {
+                  // Skip features without geometry or properties
+                  if (!feature.geometry || !feature.properties) continue;
+                  
+                  // Check if the feature's bounding box intersects with our point buffer
+                  const featureBbox = getBoundingBox(feature.geometry);
+                  if (featureBbox && bboxesIntersect(bbox, featureBbox)) {
+                    const properties = feature.properties;
+                    
+                    // Get tract ID in a consistent format
+                    let tractId = properties.GEOID || properties.tractId || '';
+                    if (properties.STATE && properties.COUNTY && properties.TRACT) {
+                      tractId = `${properties.STATE}${properties.COUNTY}${properties.TRACT}`;
+                    }
+                    
+                    console.log(`Found intersecting tract: ${tractId}`);
+                    foundFeature = true;
+                    setSelectedTractId(tractId);
+                    
+                    // Update opportunity score based on feature's income value
+                    const incomeValue = properties.value || 0;
+                    const { min, max } = getIncomeRange();
+                    const score = Math.round(((incomeValue - min) / (max - min)) * 100);
+                    setOpportunityScore(score);
+                    
+                    // Set the current zip with clean formatting
+                    const tractName = properties.NAME || properties.NAMELSAD || properties.name || '';
+                    setCurrentZip(`${tractName ? tractName + ' Census Tract' : 'Census Tract ' + tractId}`);
+                    
+                    // Generate factor scores that correlate with the income
+                    const baseScore = score;
+                    setFactorScores({
+                      segregation: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      incomeInequality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      schoolQuality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
+                    });
+                    
+                    // Add a highlight for the selected tract
+                    console.log('Adding highlight for found tract');
+                    addTractHighlight(feature as CensusTractFeature);
+                    break;
+                  }
+                }
+                
+                // If we didn't find a feature, try a different approach
+                if (!foundFeature) {
+                  console.log('No intersecting tract found, trying rendered features');
+                  
+                  // As a fallback, try to get the feature at the exact point
+                  const renderedFeatures = map.current?.queryRenderedFeatures(
+                    map.current.project([longitude, latitude]),
+                    { layers: ['census-fills'] }
+                  );
+                  
+                  console.log(`Found ${renderedFeatures.length} rendered features at point`);
+                  
+                  if (renderedFeatures.length > 0) {
+                    const feature = renderedFeatures[0];
+                    const properties = feature.properties || {};
+                    
+                    // Get tract ID
+                    let tractId = properties.GEOID || properties.tractId || 'Unknown';
+                    if (properties.STATE && properties.COUNTY && properties.TRACT) {
+                      tractId = `${properties.STATE}${properties.COUNTY}${properties.TRACT}`;
+                    }
+                    
+                    console.log(`Using rendered feature with tract ID: ${tractId}`);
+                    setSelectedTractId(tractId);
+                    
+                    // Update UI with tract info
+                    const incomeValue = properties.value || 0;
+                    const { min, max } = getIncomeRange();
+                    const score = Math.round(((incomeValue - min) / (max - min)) * 100);
+                    setOpportunityScore(score);
+                    
+                    const tractName = properties.NAME || properties.NAMELSAD || properties.name || '';
+                    setCurrentZip(`${tractName ? tractName + ' Census Tract' : 'Census Tract ' + tractId}`);
+                    
+                    // Generate factor scores
+                    const baseScore = score;
+                    setFactorScores({
+                      segregation: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      incomeInequality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      schoolQuality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
+                      socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
+                    });
+                    
+                    // Add highlight
+                    console.log('Adding highlight for rendered feature');
+                    addTractHighlight(feature as CensusTractFeature);
+                  } else {
+                    // If still no feature found, create a manual highlight
+                    console.log('No features found at point, creating manual highlight');
+                    
+                    // Create a simple circular polygon around the point
+                    const radius = 0.005; // Approximately 500m radius
+                    const points = 16; // Number of points in the circle
+                    const circle = createCircle([longitude, latitude], radius, points);
+                    
+                    const manualFeature: CensusTractFeature = {
+                      type: 'Feature',
+                      geometry: {
+                        type: 'Polygon',
+                        coordinates: [circle]
+                      },
+                      properties: {
+                        tractId: 'manual-tract',
+                        NAME: 'Current Location',
+                        value: 35000 // Middle value
+                      }
+                    };
+                    
+                    // Add highlight for the manual feature
+                    console.log('Adding manual highlight');
+                    addTractHighlight(manualFeature);
+                    
+                    // Set some default values for the UI
+                    setSelectedTractId('manual-tract');
+                    setCurrentZip('Current Location');
+                    setOpportunityScore(50); // Middle score
+                    setFactorScores({
+                      segregation: 50,
+                      incomeInequality: 50,
+                      schoolQuality: 50,
+                      familyStructure: 50,
+                      socialCapital: 50
+                    });
+                  }
+                }
+              } catch (error) {
+                console.error('Error finding census tract:', error);
+              }
+            }, 500); // Wait 500ms after the map has moved to ensure it's fully rendered
+          }
+        };
+        
+        // Listen for the map to finish moving
+        map.current.on('moveend', handleMoveEnd);
+      } else {
+        console.error('No results found for address:', address);
+        setError(`No location found for address: ${address}`);
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoading(false);
+    }
+  }, [getIncomeRange]);
+  
+  // Helper function to get a bounding box from a geometry
+  const getBoundingBox = (geometry: any): number[] | null => {
+    try {
+      if (!geometry || !geometry.coordinates || !geometry.coordinates.length) return null;
+      
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      
+      // Handle different geometry types
+      if (geometry.type === 'Polygon') {
+        // For polygons, iterate through all coordinates
+        for (const ring of geometry.coordinates) {
+          for (const [x, y] of ring) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+        return [minX, minY, maxX, maxY];
+      }
+      
+      return null;
+    } catch (e) {
+      console.error('Error getting bounding box:', e);
+      return null;
+    }
+  };
+  
+  // Helper function to check if two bounding boxes intersect
+  const bboxesIntersect = (bbox1: number[], bbox2: number[]): boolean => {
+    return (
+      bbox1[0] <= bbox2[2] && // minX1 <= maxX2
+      bbox1[2] >= bbox2[0] && // maxX1 >= minX2
+      bbox1[1] <= bbox2[3] && // minY1 <= maxY2
+      bbox1[3] >= bbox2[1]    // maxY1 >= minY2
+    );
+  };
+  
+  // Helper function to create a circle as an array of points
+  const createCircle = (center: [number, number], radius: number, points: number): [number, number][] => {
+    const [centerX, centerY] = center;
+    const coords: [number, number][] = [];
     
-    /* Commented out dynamic calculation which can cause issues with outliers
-    if (opportunityData.length === 0) return { min: 20000, max: 55500 };
+    for (let i = 0; i < points; i++) {
+      const angle = (i / points) * (2 * Math.PI);
+      const x = centerX + (radius * Math.cos(angle));
+      const y = centerY + (radius * Math.sin(angle));
+      coords.push([x, y]);
+    }
     
-    const incomeValues = opportunityData.map(item => 
-      Number(item.Household_Income_at_Age_35_rP_gP_p25)
-    ).filter(val => !isNaN(val));
+    // Close the circle by repeating the first point
+    coords.push(coords[0]);
     
-    // Handle extreme outliers by using percentiles instead of min/max
-    incomeValues.sort((a, b) => a - b);
-    const lowerIdx = Math.floor(incomeValues.length * 0.05); // 5th percentile
-    const upperIdx = Math.floor(incomeValues.length * 0.95); // 95th percentile
+    return coords;
+  };
+  
+  // Function to add highlight around a census tract
+  const addTractHighlight = useCallback((tractFeature: CensusTractFeature) => {
+    if (!map.current || !map.current.loaded()) {
+      console.log('Map not loaded yet, cannot add highlight');
+      return;
+    }
     
-    return {
-      min: incomeValues[lowerIdx] || 20000,
-      max: incomeValues[upperIdx] || 55500
-    };
-    */
-  }, [opportunityData]);
+    console.log('Adding highlight for tract feature:', tractFeature);
+    
+    try {
+      // Remove any existing highlight
+      if (map.current.getLayer('selected-tract-outline')) {
+        map.current.removeLayer('selected-tract-outline');
+      }
+      if (map.current.getSource('selected-tract-source')) {
+        map.current.removeSource('selected-tract-source');
+      }
+      
+      // Create a new source and layer for the selected tract
+      map.current.addSource('selected-tract-source', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: tractFeature.geometry,
+          properties: {}
+        }
+      });
+      
+      // Add a highlighted outline for the selected tract with a thick black border
+      // to match the image provided
+      map.current.addLayer({
+        id: 'selected-tract-outline',
+        type: 'line',
+        source: 'selected-tract-source',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#000000', // Black color
+          'line-width': 4, // Thicker line
+          'line-opacity': 1.0 // Fully opaque
+        }
+      });
+      
+      console.log('Successfully added tract highlight');
+    } catch (error) {
+      console.error('Error adding tract highlight:', error);
+    }
+  }, []);
+  
+  // Helper function to check if a point is inside a polygon
+  const isPointInPolygon = (point: [number, number], geometry: any): boolean => {
+    try {
+      if (!map.current || !geometry) {
+        console.log('Map or geometry not available for point-in-polygon check');
+        return false;
+      }
+      
+      // Use Mapbox's built-in spatial querying
+      // Convert the geographic point to pixel coordinates
+      const screenPoint = map.current.project(point);
+      
+      // Query features at this point
+      const features = map.current.queryRenderedFeatures(screenPoint, { layers: ['census-fills'] });
+      
+      // Log for debugging
+      console.log(`Found ${features.length} features at point [${point[0]}, ${point[1]}]`);
+      
+      if (features.length > 0) {
+        // For more precise checking, we could compare the feature IDs or properties
+        // but for now, we'll just check if any feature was found
+        return true;
+      }
+      
+      // If we're zoomed out too far, the point might not be in any visible feature
+      // In that case, we'll need to use a more sophisticated approach
+      // For now, we'll just return false
+      return false;
+    } catch (e) {
+      console.error('Error in point-in-polygon check:', e);
+      return false;
+    }
+  };
+
+  // Zoom to address when it changes
+  useEffect(() => {
+    // Ensure we only proceed when map is loaded and address is a non-empty string
+    if (map.current && map.current.loaded() && typeof data.address === 'string' && data.address.trim() !== '') {
+      console.log('Looking up census tract for address:', data.address);
+      findCensusTractFromAddress(data.address);
+    }
+  }, [data.address, findCensusTractFromAddress]);
 
   // Helper function to clear map layers
   const clearMapLayers = useCallback(() => {
     if (!map.current) return;
     
     // Remove event listeners
-    ['census-fills', 'commuting-fills'].forEach(layerId => {
-      if (map.current && map.current.getLayer(layerId)) {
-        try {
-          map.current.off('click', layerId);
-          map.current.off('mouseenter', layerId);
-          map.current.off('mouseleave', layerId);
-        } catch (e) {
-          console.log(`Error removing event listeners for ${layerId}:`, e);
-        }
+    if (map.current && map.current.getLayer('census-fills')) {
+      try {
+        map.current.off('click', 'census-fills');
+        map.current.off('mouseenter', 'census-fills');
+        map.current.off('mouseleave', 'census-fills');
+      } catch (e) {
+        console.log(`Error removing event listeners for census-fills:`, e);
       }
-    });
+    }
     
     // Remove layers
-    ['census-fills', 'census-borders', 'commuting-fills', 'commuting-borders'].forEach(layerId => {
+    ['census-fills', 'census-borders'].forEach(layerId => {
       if (map.current && map.current.getLayer(layerId)) {
         try {
           map.current.removeLayer(layerId);
@@ -150,15 +542,13 @@ const OpportunityMap: React.FC = () => {
     });
     
     // Remove sources
-    ['census-tracts', 'commuting-zones'].forEach(sourceId => {
-      if (map.current && map.current.getSource(sourceId)) {
-        try {
-          map.current.removeSource(sourceId);
-        } catch (e) {
-          console.log(`Error removing source ${sourceId}:`, e);
-        }
+    if (map.current && map.current.getSource('census-tracts')) {
+      try {
+        map.current.removeSource('census-tracts');
+      } catch (e) {
+        console.log(`Error removing source census-tracts:`, e);
       }
-    });
+    }
   }, []);
   
   // Function to load census tracts data
@@ -361,8 +751,8 @@ const OpportunityMap: React.FC = () => {
         'source': 'census-tracts',
         'paint': {
           'line-color': '#627BC1',
-          'line-width': 0.25,
-          'line-opacity': 0.3
+          'line-width': 0.5,  // Slightly thicker lines
+          'line-opacity': 0.5  // More visible opacity
         }
       });
       
@@ -426,6 +816,8 @@ const OpportunityMap: React.FC = () => {
           const feature = e.features[0];
           const properties = feature.properties || {};
           
+          console.log('Clicked on census tract feature:', feature);
+          
           // Get tract information
           let tractId = properties.GEOID || properties.tractId || 'Unknown';
           if (properties.STATE && properties.COUNTY && properties.TRACT) {
@@ -458,6 +850,32 @@ const OpportunityMap: React.FC = () => {
             familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
             socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
           });
+          
+          // Add highlight around the selected census tract
+          setSelectedTractId(tractId);
+          
+          try {
+            // Ensure the feature has the necessary geometry before highlighting
+            if (feature.geometry) {
+              console.log('Adding highlight for clicked tract');
+              
+              // Make a deep copy of the feature to avoid any reference issues
+              const featureCopy: CensusTractFeature = {
+                type: 'Feature',
+                geometry: JSON.parse(JSON.stringify(feature.geometry)),
+                properties: { ...properties }
+              };
+              
+              // Add the highlight with a slight delay to ensure the map is ready
+              setTimeout(() => {
+                addTractHighlight(featureCopy);
+              }, 50);
+            } else {
+              console.error('Feature is missing geometry, cannot highlight');
+            }
+          } catch (error) {
+            console.error('Error highlighting clicked tract:', error);
+          }
         }
       });
       
@@ -471,229 +889,6 @@ const OpportunityMap: React.FC = () => {
     }
   }, [clearMapLayers, getIncomeRange, opportunityData]);
   
-  // Function to load commuting zones
-  const loadCommutingZones = useCallback(async () => {
-    if (!map.current || !map.current.loaded()) {
-      console.log('Map not loaded yet');
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      // Clear existing layers
-      clearMapLayers();
-      
-      // Calculate income range for color scale
-      const { min, max } = getIncomeRange();
-      
-      // For demonstration purposes, we'll use a public counties GeoJSON
-      // In a real implementation, you would use actual commuting zone data
-      const response = await fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_1_states_provinces_shp.geojson');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch commuting zones GeoJSON: ${response.status} ${response.statusText}`);
-      }
-      
-      const commutingData = await response.json();
-      console.log('Loaded commuting zones proxy data with features:', commutingData.features?.length);
-      
-      // Filter for US states only
-      const usStates = commutingData.features.filter((feature: any) => 
-        feature.properties?.adm0_a3 === 'USA'
-      );
-      console.log('Filtered to US states:', usStates.length);
-      
-      // Enhance the GeoJSON with our income data - updated pattern for states
-      const enhancedData = {
-        type: 'FeatureCollection',
-        features: usStates.map((feature: any, index: number) => {
-          // Extract the state properties
-          const props = feature.properties || {};
-          const stateName = props.name || 'Unknown';
-          
-          // Get state coordinates for regional pattern matching
-          const coordinates = feature.geometry?.coordinates?.[0]?.[0] || [0, 0];
-          const longitude = Array.isArray(coordinates) ? coordinates[0] : 0;
-          const latitude = Array.isArray(coordinates) ? coordinates[1] : 0;
-          
-          // Generate income value with specific regional patterns to match reference
-          let incomeValue = 35000; // Default middle value
-          
-          // Assign region-specific values that match the reference image
-          
-          // Southeast (GA, SC, NC, VA) - mostly red
-          if (["Georgia", "South Carolina", "North Carolina", "Alabama", "Arkansas", "Mississippi", "Tennessee"].includes(stateName)) {
-            incomeValue = 21000 + Math.random() * 5000; // Even lower income (deep red)
-          }
-          // Florida - mixed with blue southern tip
-          else if (stateName === "Florida") {
-            incomeValue = 28000 + Math.random() * 7000;
-          }
-          // Northeast (NY, NJ, etc) - mixed
-          else if (["New York", "New Jersey", "Connecticut", "Massachusetts", "Rhode Island"].includes(stateName)) {
-            incomeValue = 38000 + Math.random() * 12000; // Mid to high income
-          }
-          // Texas - mixed with more yellows and greens
-          else if (stateName === "Texas") {
-            incomeValue = 34000 + Math.random() * 10000;
-          }
-          // California - higher income (blue)
-          else if (stateName === "California") {
-            incomeValue = 42000 + Math.random() * 13000; // Higher income (blue)
-          }
-          // Upper Midwest (MN, WI, MI) - higher income (blue)
-          else if (["Minnesota", "Wisconsin", "Michigan", "Illinois", "Iowa"].includes(stateName)) {
-            incomeValue = 44000 + Math.random() * 11000;
-          }
-          // Middle America - higher income (bluish)
-          else if (["North Dakota", "South Dakota", "Nebraska", "Kansas", "Montana", "Wyoming", "Idaho"].includes(stateName)) {
-            incomeValue = 46000 + Math.random() * 9000;
-          }
-          // Louisiana - consistently red
-          else if (stateName === "Louisiana") {
-            incomeValue = 20000 + Math.random() * 5000;
-          }
-          // Default for other states - more mixed
-          else {
-            incomeValue = 30000 + Math.random() * 20000;
-          }
-          
-          // Ensure value is within our scale range
-          incomeValue = Math.max(20000, Math.min(55500, incomeValue));
-          
-          return {
-            ...feature,
-            properties: {
-              ...props,
-              value: incomeValue,
-              zone_name: stateName
-            }
-          };
-        })
-      };
-      
-      // Add the source to the map
-      map.current.addSource('commuting-zones', {
-        type: 'geojson',
-        data: enhancedData
-      });
-      
-      // Add fill layer with updated color scheme for commuting zones
-      map.current.addLayer({
-        'id': 'commuting-fills',
-        'type': 'fill',
-        'source': 'commuting-zones',
-        'paint': {
-          'fill-opacity': 0.8,
-          'fill-color': [
-            'interpolate',
-            ['linear'],
-            ['coalesce', ['number', ['get', 'value']], min],
-            20000, '#9b252f', // color-01 - Darkest red
-            25000, '#b65441', // color-02
-            28000, '#d07e59', // color-03
-            31000, '#e5a979', // color-04
-            34000, '#f4d79e', // color-05
-            37000, '#fcfdc1', // color-06 - Yellow
-            40000, '#cdddb5', // color-07
-            43000, '#9dbda9', // color-08
-            46000, '#729d9d', // color-09
-            50000, '#4f7f8b', // color-10
-            55500, '#34687e'  // color-11 - Darkest blue
-          ]
-        }
-      });
-      
-      // Add border layer
-      map.current.addLayer({
-        'id': 'commuting-borders',
-        'type': 'line',
-        'source': 'commuting-zones',
-        'paint': {
-          'line-color': '#627BC1',
-          'line-width': 0.5,
-          'line-opacity': 0.5
-        }
-      });
-      
-      // Track the active popup for commuting zones
-      let activeCommutingPopup: mapboxgl.Popup | null = null;
-      
-      // Add interactions
-      map.current.on('mouseenter', 'commuting-fills', () => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-      });
-      
-      map.current.on('mouseleave', 'commuting-fills', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
-        
-        // Remove active commuting popup when leaving the layer
-        if (activeCommutingPopup) {
-          activeCommutingPopup.remove();
-          activeCommutingPopup = null;
-        }
-      });
-      
-      map.current.on('mousemove', 'commuting-fills', (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
-        if (e.features && e.features.length > 0) {
-          // Remove any existing popup before creating a new one
-          if (activeCommutingPopup) {
-            activeCommutingPopup.remove();
-          }
-          
-          // Show popup with zone information
-          const props = e.features[0].properties || {};
-          const zoneName = props.zone_name || props.name || 'Unknown';
-          const incomeValue = props.value || 0;
-          
-          activeCommutingPopup = new mapboxgl.Popup({ closeButton: false })
-            .setLngLat(e.lngLat)
-            .setHTML(`
-              <div style="padding: 8px; font-family: Arial, sans-serif;">
-                <strong>${zoneName}</strong><br/>
-                <span>Household Income at Age 35: $${Math.round(Number(incomeValue)).toLocaleString()}</span>
-              </div>
-            `)
-            .addTo(map.current);
-        }
-      });
-      
-      // Add click interaction
-      map.current.on('click', 'commuting-fills', (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          const properties = feature.properties || {};
-          
-          const zoneName = properties.zone_name || properties.name || 'Unknown';
-          const incomeValue = properties.value || 0;
-          
-          // Set opportunity score based on income level
-          const score = Math.round(((incomeValue - min) / (max - min)) * 100);
-          setOpportunityScore(score);
-          setCurrentZip(`${zoneName} Region`);
-          
-          // Generate factor scores that correlate with the income
-          const baseScore = score;
-          setFactorScores({
-            segregation: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            incomeInequality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            schoolQuality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
-          });
-        }
-      });
-      
-      setLoading(false);
-      setError(null);
-      
-    } catch (error: unknown) {
-      console.error('Error loading commuting zones:', error);
-      setError(error instanceof Error ? error.message : String(error));
-      setLoading(false);
-    }
-  }, [clearMapLayers, getIncomeRange, opportunityData]);
-
   // Initialize map when component mounts
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -767,12 +962,13 @@ const OpportunityMap: React.FC = () => {
         mapContainer.current.appendChild(legend);
       }
       
-      // Load initial data
-      if (mapView === 'census') {
-        loadCensusTracts();
-      } else {
-        loadCommutingZones();
-      }
+      // Load census tracts data
+      loadCensusTracts().then(() => {
+        // If we already have an address, find the census tract for it
+        if (typeof data.address === 'string' && data.address.trim() !== '') {
+          findCensusTractFromAddress(data.address);
+        }
+      });
     });
     
     // Clean up on unmount
@@ -788,20 +984,7 @@ const OpportunityMap: React.FC = () => {
         legend.remove();
       }
     };
-  }, [loadCensusTracts, loadCommutingZones, mapView]);
-  
-  // Handle switching between map views
-  useEffect(() => {
-    if (!map.current || !map.current.loaded()) return;
-    
-    console.log('Switching view to:', mapView);
-    
-    if (mapView === 'census') {
-      loadCensusTracts();
-    } else {
-      loadCommutingZones();
-    }
-  }, [mapView, loadCensusTracts, loadCommutingZones]);
+  }, [loadCensusTracts]);
 
   // Helper function to render score bars
   const renderScoreBar = (score: number | null, label: string) => (
@@ -812,12 +995,31 @@ const OpportunityMap: React.FC = () => {
       </div>
       <div className="bg-gray-200 rounded-full h-2">
         <div 
-          className="bg-primary rounded-full h-2 transition-all duration-300" 
-          style={{ width: score ? `${score}%` : '0%', backgroundColor: '#34687e' }}
+          className="rounded-full h-2 transition-all duration-300" 
+          style={{ width: score ? `${score}%` : '0%', backgroundColor: '#6CD9CA' }}
         />
       </div>
     </div>
   );
+
+  // Add a personalized message if we have personalization data
+  const renderPersonalizedInfo = () => {
+    // Safeguard against undefined or null children array
+    const children = data.children || [];
+    
+    if (children.length > 0 && children[0] && typeof children[0].name === 'string' && children[0].name.trim() !== '') {
+      const childName = children[0].name;
+      return (
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+          <h4 className="font-medium text-blue-800 mb-2">Personalized Insights for {childName}</h4>
+          <p className="text-sm text-blue-700">
+            Based on the opportunity scores for this area, here are some key factors that could affect {childName}'s future outcomes.
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
@@ -831,45 +1033,19 @@ const OpportunityMap: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg relative">
           <div 
             ref={mapContainer} 
-            className="map-container h-[500px] rounded-t-xl"
+            className="map-container h-[500px] rounded-xl"
             style={{ width: '100%' }}
           />
-          <div className="p-4 border-t">
-            <div className="flex justify-center space-x-4">
-              <button 
-                onClick={() => setMapView('commuting')}
-                className={`px-4 py-2 rounded-full ${
-                  mapView === 'commuting' 
-                    ? 'bg-primary text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-                style={{ backgroundColor: mapView === 'commuting' ? '#34687e' : undefined, color: mapView === 'commuting' ? 'white' : undefined }}
-              >
-                Commuting Zones
-              </button>
-              <button 
-                onClick={() => setMapView('census')}
-                className={`px-4 py-2 rounded-full ${
-                  mapView === 'census' 
-                    ? 'bg-primary text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-                style={{ backgroundColor: mapView === 'census' ? '#34687e' : undefined, color: mapView === 'census' ? 'white' : undefined }}
-              >
-                Census Tracts
-              </button>
+          
+          {currentZip && (
+            <div className="mt-4 p-4 text-center text-sm text-gray-600 border-t">
+              {currentZip}
             </div>
-            
-            {currentZip && (
-              <div className="mt-4 text-center text-sm text-gray-600">
-                {currentZip}
-              </div>
-            )}
-          </div>
+          )}
           
           {/* Loading indicator */}
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-t-xl">
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-xl">
               <div className="p-4 bg-white rounded-lg shadow-md">
                 <p className="text-gray-700">Loading map data...</p>
               </div>
@@ -888,7 +1064,7 @@ const OpportunityMap: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-2xl font-semibold mb-4">Household Income Score</h3>
           <div className="text-center mb-6">
-            <span className="text-5xl font-bold" style={{ color: '#34687e' }}>
+            <span className="text-5xl font-bold" style={{ color: '#6CD9CA' }}>
               {opportunityScore ?? '--'}
             </span>
             <span className="text-lg ml-2 text-gray-500">out of 100</span>
@@ -901,6 +1077,9 @@ const OpportunityMap: React.FC = () => {
             {renderScoreBar(factorScores.familyStructure, 'Family Structure')}
             {renderScoreBar(factorScores.socialCapital, 'Social Capital')}
           </div>
+
+          {/* Add personalized insights based on quiz data */}
+          {renderPersonalizedInfo()}
         </div>
       </div>
       
@@ -916,7 +1095,7 @@ const OpportunityMap: React.FC = () => {
           <div>
             <h4 className="font-medium mb-2">How to Use This Map</h4>
             <p className="text-gray-700">
-              Click on any region to see detailed income scores and other factors. Toggle between Commuting Zones (larger areas) and Census Tracts (smaller, more detailed areas) to explore at different geographic levels.
+              Click on any region to see detailed income scores and other factors. You can also zoom in to explore specific neighborhoods and census tracts in more detail. When you enter your zip code in the personalization quiz, the map will automatically zoom to your area.
             </p>
           </div>
         </div>
