@@ -5,6 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Papa from 'papaparse';
 import { usePersonalization } from './PersonalizationContext';
+import { getDataFromS3, getCSVFromS3, getJSONFromS3 } from '../utils/s3Utils';
 
 // Set Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFoaWFyIiwiYSI6ImNtNDY1YnlwdDB2Z2IybHEwd2w3MHJvb3cifQ.wJqnzFFTwLFwYhiPG3SWJA';
@@ -79,36 +80,35 @@ const OpportunityMap: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTractId, setSelectedTractId] = useState<string | null>(null);
   
+  // S3 utility functions are imported from utils/s3Utils.ts
+
   // Load opportunity data
   useEffect(() => {
     const loadOpportunityData = async () => {
       try {
-        const response = await fetch('/data/tract_kfr_rP_gP_p25.csv');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
+        // Get data from S3 instead of local file using our utility function
+        const data = await getCSVFromS3<OpportunityData>(
+          'thesismr', 
+          'census_tracts_opp/tract_kfr_rP_gP_p25.csv'
+        );
+        
+        // Check for valid data
+        if (!data || data.length === 0) {
+          throw new Error('No data returned from S3 or empty data array');
         }
         
-        const csvData = await response.text();
+        // Validate the data structure
+        const firstItem = data[0];
+        if (!firstItem.tract || !firstItem.Household_Income_at_Age_35_rP_gP_p25) {
+          console.warn('Data structure may be incorrect:', firstItem);
+        }
         
-        Papa.parse(csvData, {
-          header: true,
-          skipEmptyLines: true,
-          dynamicTyping: true,
-          complete: (results) => {
-            console.log('Loaded opportunity data:', results.data);
-            setOpportunityData(results.data as OpportunityData[]);
-            setDataLoaded(true);
-          },
-          error: (error: Error) => {
-            console.error('Error parsing CSV:', error);
-            setError(`Error parsing CSV: ${error.message}`);
-            
-            // Fallback to sample data
-            fallbackToSampleData();
-          }
-        });
+        console.log('Loaded opportunity data from S3:', data.length, 'items');
+        console.log('First 3 items:', data.slice(0, 3));
+        setOpportunityData(data);
+        setDataLoaded(true);
       } catch (error: unknown) {
-        console.error('Error loading opportunity data:', error);
+        console.error('Error loading opportunity data from S3:', error);
         setError(error instanceof Error ? error.message : String(error));
         
         // Fallback to sample data
@@ -208,14 +208,20 @@ const OpportunityMap: React.FC = () => {
                   latitude + buffer
                 ];
                 
+                console.log(`Searching for features in bbox: [${bbox.join(', ')}]`);
+                
                 // Get features that intersect with this bounding box
                 for (const feature of features) {
                   // Skip features without geometry or properties
-                  if (!feature.geometry || !feature.properties) continue;
+                  if (!feature.geometry || !feature.properties) {
+                    console.log('Skipping feature without geometry or properties');
+                    continue;
+                  }
                   
                   // Check if the feature's bounding box intersects with our point buffer
                   const featureBbox = getBoundingBox(feature.geometry);
                   if (featureBbox && bboxesIntersect(bbox, featureBbox)) {
+                    console.log('Found intersecting feature:', feature);
                     const properties = feature.properties;
                     
                     // Get tract ID in a consistent format
@@ -425,18 +431,26 @@ const OpportunityMap: React.FC = () => {
   const addTractHighlight = useCallback((tractFeature: CensusTractFeature) => {
     if (!map.current || !map.current.loaded()) {
       console.log('Map not loaded yet, cannot add highlight');
+      // Try again after a short delay
+      setTimeout(() => addTractHighlight(tractFeature), 500);
       return;
     }
     
     console.log('Adding highlight for tract feature:', tractFeature);
     
     try {
-      // Remove any existing highlight
+      // Remove any existing highlight layers and sources
       if (map.current.getLayer('selected-tract-outline')) {
         map.current.removeLayer('selected-tract-outline');
       }
       if (map.current.getSource('selected-tract-source')) {
         map.current.removeSource('selected-tract-source');
+      }
+      
+      // Make sure the geometry is valid
+      if (!tractFeature.geometry || !tractFeature.geometry.coordinates) {
+        console.error('Invalid geometry for tract feature:', tractFeature);
+        return;
       }
       
       // Create a new source and layer for the selected tract
@@ -450,7 +464,6 @@ const OpportunityMap: React.FC = () => {
       });
       
       // Add a highlighted outline for the selected tract with a thick black border
-      // to match the image provided - ensure it's added at the very top of all layers
       map.current.addLayer({
         id: 'selected-tract-outline',
         type: 'line',
@@ -461,15 +474,18 @@ const OpportunityMap: React.FC = () => {
         },
         paint: {
           'line-color': '#000000', // Black color
-          'line-width': 4, // Thicker line
-          'line-opacity': 1.0 // Fully opaque
+          'line-width': 3, // Thick line
+          'line-opacity': 1.0, // Fully opaque
+          'line-dasharray': [1, 0] // Solid line
         }
       });
       
       // Ensure the highlight layer is at the very top of the layer stack
-      // This is crucial to make sure it appears above the street layers
-      const layers = map.current.getStyle().layers || [];
-      if (layers.length > 0 && layers[layers.length - 1].id !== 'selected-tract-outline') {
+      // This is crucial to make sure it appears above all other layers
+      const allLayers = map.current.getStyle().layers || [];
+      const topLayerId = allLayers.length > 0 ? allLayers[allLayers.length - 1].id : null;
+      
+      if (topLayerId && topLayerId !== 'selected-tract-outline') {
         // Move the highlight layer to the top
         map.current.moveLayer('selected-tract-outline');
         console.log('Moved highlight layer to top of stack');
@@ -518,9 +534,26 @@ const OpportunityMap: React.FC = () => {
   // Zoom to address when it changes
   useEffect(() => {
     // Ensure we only proceed when map is loaded and address is a non-empty string
-    if (map.current && map.current.loaded() && typeof data.address === 'string' && data.address.trim() !== '') {
+    if (typeof data.address === 'string' && data.address.trim() !== '') {
       console.log('Looking up census tract for address:', data.address);
-      findCensusTractFromAddress(data.address);
+      
+      // If map is not loaded yet, wait for it
+      if (!map.current || !map.current.loaded()) {
+        console.log('Map not ready yet, waiting before geocoding address');
+        const checkMapInterval = setInterval(() => {
+          if (map.current && map.current.loaded()) {
+            clearInterval(checkMapInterval);
+            console.log('Map now ready, proceeding with geocoding');
+            findCensusTractFromAddress(data.address);
+          }
+        }, 500);
+        
+        // Clear interval after 10 seconds to prevent infinite checking
+        setTimeout(() => clearInterval(checkMapInterval), 10000);
+      } else {
+        // Map is ready, proceed immediately
+        findCensusTractFromAddress(data.address);
+      }
     }
   }, [data.address, findCensusTractFromAddress]);
 
@@ -584,8 +617,16 @@ const OpportunityMap: React.FC = () => {
   
   // Function to load census tracts data
   const loadCensusTracts = useCallback(async () => {
-    if (!map.current || !map.current.loaded()) {
-      console.log('Map not loaded yet');
+    if (!map.current || !dataLoaded) {
+      console.log('Map or data not ready, skipping loadCensusTracts');
+      return;
+    }
+    
+    // Make sure the map is fully loaded
+    if (!map.current.loaded()) {
+      console.log('Map not fully loaded, waiting...');
+      // Try again after a short delay
+      setTimeout(() => loadCensusTracts(), 500);
       return;
     }
     
@@ -599,23 +640,52 @@ const OpportunityMap: React.FC = () => {
       const { min, max } = getIncomeRange();
       console.log('Income range:', { min, max });
       
-      // Load local GeoJSON file for census tracts
-      const response = await fetch('/data/census-tracts.geojson');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch census tracts GeoJSON: ${response.status} ${response.statusText}`);
+      // Load GeoJSON file from S3 for census tracts using our utility function
+      let censusTractsData;
+      try {
+        censusTractsData = await getJSONFromS3(
+          'thesismr', 
+          'geojson/census-tracts.geojson'
+        );
+        
+        // Validate GeoJSON structure
+        if (!censusTractsData || !censusTractsData.features || !Array.isArray(censusTractsData.features)) {
+          throw new Error('Invalid GeoJSON structure: missing features array');
+        }
+        
+        console.log('Loaded census tracts GeoJSON with features:', censusTractsData.features.length);
+      } catch (error) {
+        console.error('Error loading GeoJSON:', error);
+        setError('Failed to load map data. Please try again later.');
+        return;
       }
       
-      // Parse the GeoJSON
-      const censusTractsData = await response.json();
-      console.log('Loaded census tracts GeoJSON with features:', censusTractsData.features?.length);
-      
-      // Create a lookup object for our income data
+      // Create a lookup object for our income data with multiple format options
       const tractIncomeData: Record<string, number> = {};
       opportunityData.forEach(item => {
-        // Format the tract ID to match the format in GeoJSON
-        // We need to extract just the numeric part without leading zeros
-        const formattedTractId = item.tract.toString();
-        tractIncomeData[formattedTractId] = item.Household_Income_at_Age_35_rP_gP_p25;
+        // Store multiple formats of the tract ID to increase chances of matching
+        const tractId = item.tract.toString();
+        
+        // Format 1: Original format
+        tractIncomeData[tractId] = item.Household_Income_at_Age_35_rP_gP_p25;
+        
+        // Format 2: With leading zeros (11 digits)
+        const paddedTractId = tractId.padStart(11, '0');
+        tractIncomeData[paddedTractId] = item.Household_Income_at_Age_35_rP_gP_p25;
+        
+        // Format 3: Without leading zeros
+        const unpaddedTractId = parseInt(tractId, 10).toString();
+        tractIncomeData[unpaddedTractId] = item.Household_Income_at_Age_35_rP_gP_p25;
+        
+        // Log the first few entries to debug
+        if (opportunityData.indexOf(item) < 3) {
+          console.log(`Tract ID formats for ${item.Name}:`, {
+            original: tractId,
+            padded: paddedTractId,
+            unpadded: unpaddedTractId,
+            income: item.Household_Income_at_Age_35_rP_gP_p25
+          });
+        }
       });
       
       // Log for debugging - check what data exists in the GeoJSON
@@ -743,7 +813,26 @@ const OpportunityMap: React.FC = () => {
         })
       };
       
-      // Add the source to the map
+      // Check if map is initialized
+      if (!map.current) {
+        console.error('Map is not initialized');
+        return;
+      }
+
+      // Remove existing source if it exists
+      if (map.current.getSource('census-tracts')) {
+        // First remove any layers that use this source
+        if (map.current.getLayer('census-fills')) {
+          map.current.removeLayer('census-fills');
+        }
+        if (map.current.getLayer('census-borders')) {
+          map.current.removeLayer('census-borders');
+        }
+        // Then remove the source
+        map.current.removeSource('census-tracts');
+      }
+
+      // Now add the source to the map
       map.current.addSource('census-tracts', {
         type: 'geojson',
         data: enhancedData
