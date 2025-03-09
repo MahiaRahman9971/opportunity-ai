@@ -42,15 +42,6 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
         <p className="text-xl">Based on your community&apos;s opportunity score, here are some actions you can consider:</p>
       </div>
       <div className="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-8">
-        {/* Community Score */}
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-4">Your Community Score</h3>
-          <div className="w-40 h-40 rounded-full bg-[#6CD9CA] text-white flex items-center justify-center">
-            <span className="text-5xl font-bold">
-              5<span className="text-2xl">/10</span>
-            </span>
-          </div>
-        </div>
         {/* Areas for Improvement */}
         <div className="text-center">
           <h3 className="text-xl font-semibold mb-4">Areas for Improvement</h3>

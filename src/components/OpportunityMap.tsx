@@ -10,13 +10,7 @@ import { getDataFromS3, getCSVFromS3, getJSONFromS3 } from '../utils/s3Utils';
 // Set Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFoaWFyIiwiYSI6ImNtNDY1YnlwdDB2Z2IybHEwd2w3MHJvb3cifQ.wJqnzFFTwLFwYhiPG3SWJA';
 
-interface FactorScores {
-  segregation: number | null;
-  incomeInequality: number | null;
-  schoolQuality: number | null;
-  familyStructure: number | null;
-  socialCapital: number | null;
-}
+// Removed FactorScores interface as we're only showing opportunity score
 
 interface OpportunityData {
   tract: string;
@@ -67,13 +61,7 @@ const OpportunityMap: React.FC = () => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [currentZip, setCurrentZip] = useState<string>('');
   const [opportunityScore, setOpportunityScore] = useState<number | null>(null);
-  const [factorScores, setFactorScores] = useState<FactorScores>({
-    segregation: null,
-    incomeInequality: null,
-    schoolQuality: null,
-    familyStructure: null,
-    socialCapital: null
-  });
+  // Only tracking opportunity score, factor scores removed
   const [opportunityData, setOpportunityData] = useState<OpportunityData[]>([]);
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -244,15 +232,7 @@ const OpportunityMap: React.FC = () => {
                     const tractName = properties.NAME || properties.NAMELSAD || properties.name || '';
                     setCurrentZip(`${tractName ? tractName + ' Census Tract' : 'Census Tract ' + tractId}`);
                     
-                    // Generate factor scores that correlate with the income
-                    const baseScore = score;
-                    setFactorScores({
-                      segregation: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      incomeInequality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      schoolQuality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
-                    });
+                    // Factor scores removed - only showing opportunity score
                     
                     // Add a highlight for the selected tract
                     console.log('Adding highlight for found tract');
@@ -295,15 +275,7 @@ const OpportunityMap: React.FC = () => {
                     const tractName = properties.NAME || properties.NAMELSAD || properties.name || '';
                     setCurrentZip(`${tractName ? tractName + ' Census Tract' : 'Census Tract ' + tractId}`);
                     
-                    // Generate factor scores
-                    const baseScore = score;
-                    setFactorScores({
-                      segregation: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      incomeInequality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      schoolQuality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-                      socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
-                    });
+                    // Factor scores removed - only showing opportunity score
                     
                     // Add highlight
                     console.log('Adding highlight for rendered feature');
@@ -338,13 +310,7 @@ const OpportunityMap: React.FC = () => {
                     setSelectedTractId('manual-tract');
                     setCurrentZip('Current Location');
                     setOpportunityScore(50); // Middle score
-                    setFactorScores({
-                      segregation: 50,
-                      incomeInequality: 50,
-                      schoolQuality: 50,
-                      familyStructure: 50,
-                      socialCapital: 50
-                    });
+                    // Factor scores removed - only showing opportunity score
                   }
                 }
               } catch (error) {
@@ -1089,16 +1055,7 @@ const OpportunityMap: React.FC = () => {
           // Set the current zip with clean formatting
           setCurrentZip(`${tractName ? tractName + ' Census Tract' : 'Census Tract ' + tractId}`);
           
-          // Generate factor scores that correlate with the income
-          // This creates a more realistic pattern of scores that would likely be correlated
-          const baseScore = score;
-          setFactorScores({
-            segregation: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            incomeInequality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            schoolQuality: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            familyStructure: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15))),
-            socialCapital: Math.max(0, Math.min(100, baseScore + Math.floor(Math.random() * 30 - 15)))
-          });
+          // Factor scores removed - only showing opportunity score
           
           // Add highlight around the selected census tract
           setSelectedTractId(tractId);
@@ -1235,21 +1192,7 @@ const OpportunityMap: React.FC = () => {
     };
   }, [loadCensusTracts]);
 
-  // Helper function to render score bars
-  const renderScoreBar = (score: number | null, label: string) => (
-    <div key={label} className="space-y-1">
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-700">{label}</span>
-        <span className="text-sm text-gray-500">{score ?? '--'}</span>
-      </div>
-      <div className="bg-gray-200 rounded-full h-2">
-        <div 
-          className="rounded-full h-2 transition-all duration-300" 
-          style={{ width: score ? `${score}%` : '0%', backgroundColor: '#6CD9CA' }}
-        />
-      </div>
-    </div>
-  );
+  // Helper function to render score bar removed - only showing opportunity score
 
   // Add a personalized message if we have personalization data
   const renderPersonalizedInfo = () => {
@@ -1274,7 +1217,6 @@ const OpportunityMap: React.FC = () => {
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
       <div className="text-center mb-10">
         <h2 className="text-3xl md:text-4xl font-bold mb-2">Opportunity Map</h2>
-        <p className="text-lg text-gray-600">Explore household income at age 35 across different regions</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[70%_30%] gap-8">
@@ -1309,9 +1251,9 @@ const OpportunityMap: React.FC = () => {
           )}
         </div>
 
-        {/* Opportunity Scores */}
+        {/* Opportunity Score */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-2xl font-semibold mb-4">Household Income Score</h3>
+          <h3 className="text-2xl font-semibold mb-4">Opportunity Score</h3>
           <div className="text-center mb-6">
             <span className="text-5xl font-bold" style={{ color: '#6CD9CA' }}>
               {opportunityScore ?? '--'}
@@ -1319,34 +1261,26 @@ const OpportunityMap: React.FC = () => {
             <span className="text-lg ml-2 text-gray-500">out of 100</span>
           </div>
 
-          <div className="space-y-4">
-            {renderScoreBar(factorScores.segregation, 'Segregation')}
-            {renderScoreBar(factorScores.incomeInequality, 'Income Inequality')}
-            {renderScoreBar(factorScores.schoolQuality, 'School Quality')}
-            {renderScoreBar(factorScores.familyStructure, 'Family Structure')}
-            {renderScoreBar(factorScores.socialCapital, 'Social Capital')}
+          <div className="mt-4 text-center">
+            <p className="text-gray-700 mb-8">This score represents the economic opportunity level in this area based on household income at age 35 for children who grew up here.</p>
+            
+            <hr className="my-6 border-gray-200 w-24 mx-auto" />
+            
+            <div className="flex justify-center items-center space-x-6 text-sm mt-8">
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-red-600 mr-2"></div>
+                <span>Low opportunity</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-blue-600 mr-2"></div>
+                <span>High opportunity</span>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">Click on the map to see scores • Use +/- to zoom</p>
           </div>
 
           {/* Add personalized insights based on quiz data */}
           {renderPersonalizedInfo()}
-        </div>
-      </div>
-      
-      <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-semibold mb-4">Understanding the Map</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-medium mb-2">What This Map Shows</h4>
-            <p className="text-gray-700">
-              This map visualizes household income at age 35 for children who grew up in different areas. Darker blue areas indicate higher household incomes, representing regions with better economic mobility. Redder areas indicate lower incomes and less economic mobility.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">How to Use This Map</h4>
-            <p className="text-gray-700">
-              Click on any region to see detailed income scores and other factors. You can also zoom in to explore specific neighborhoods and census tracts in more detail. When you enter your zip code in the personalization quiz, the map will automatically zoom to your area.
-            </p>
-          </div>
         </div>
       </div>
     </section>
