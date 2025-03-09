@@ -1,33 +1,11 @@
 'use client'
 
-import Image from 'next/image'
-
 const Learn = () => {
   return (
     <section id="learn" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Learn About Opportunity</h1>
         <p className="text-xl">Opportunity in America depends on where you live</p>
-      </div>
-
-      {/* Map Visualization */}
-      <div className="mb-16 relative">
-        <div className="mb-6 relative">
-          <Image 
-            src="/opportunity-map.jpg" 
-            alt="Map of opportunity in America" 
-            width={800} 
-            height={480} 
-            className="mx-auto w-full max-w-3xl h-auto"
-            priority
-          />
-          <div className="absolute top-4 left-4 text-sm md:text-base">
-            <p>Blue areas are high opportunity</p>
-          </div>
-          <div className="absolute bottom-4 right-4 text-sm md:text-base">
-            <p>Red areas are Low opportunity</p>
-          </div>
-        </div>
       </div>
 
       {/* Why opportunities vary section */}

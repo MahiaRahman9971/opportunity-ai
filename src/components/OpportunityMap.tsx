@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Papa from 'papaparse';
-import { usePersonalization } from './PersonalizationContext';
+import { usePersonalization } from './AssessQuiz';
 import { getDataFromS3, getCSVFromS3, getJSONFromS3 } from '../utils/s3Utils';
 
 // Set Mapbox access token

@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react';
+import { useState, createContext, useContext, ReactNode } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
-import { usePersonalization, PersonalizationData } from './PersonalizationContext';
 
+// Define all the types we need
 type ChildInfo = {
   name: string;
   gender: string;
@@ -10,13 +10,70 @@ type ChildInfo = {
   ethnicity: string;
 };
 
-const PersonalizationQuiz = () => {
-  const { setFullData } = usePersonalization();
+export type AssessData = {
+  address: string;
+  income: string;
+  country: string;
+  children: ChildInfo[];
+};
+
+interface AssessContextType {
+  data: AssessData;
+  updateData: (data: Partial<AssessData>) => void;
+  setFullData: (data: AssessData) => void;
+}
+
+// Initial default values
+const defaultData: AssessData = {
+  address: '',
+  income: '',
+  country: '',
+  children: []
+};
+
+const AssessContext = createContext<AssessContextType | undefined>(undefined);
+
+export function AssessProvider({ children }: { children: ReactNode }) {
+  const [data, setData] = useState<AssessData>(defaultData);
+
+  const updateData = (newData: Partial<AssessData>) => {
+    setData(prevData => ({
+      ...prevData,
+      ...newData
+    }));
+  };
+
+  const setFullData = (newData: AssessData) => {
+    setData(newData);
+  };
+
+  return (
+    <AssessContext.Provider value={{ data, updateData, setFullData }}>
+      {children}
+    </AssessContext.Provider>
+  );
+}
+
+export function useAssessment() {
+  const context = useContext(AssessContext);
+  if (context === undefined) {
+    throw new Error('useAssessment must be used within an AssessProvider');
+  }
+  return context;
+}
+
+// Alias for backward compatibility
+export const usePersonalization = useAssessment;
+
+// Alias for backward compatibility
+export { AssessProvider as PersonalizationProvider };
+
+const AssessYourCommunity = () => {
+  const { setFullData } = useAssessment();
   
   // Initialize formData with ALL fields, including address
-  const [formData, setFormData] = useState<PersonalizationData>({
-    address: '', // Added address field with empty string
-    zipCode: '',
+  const [formData, setFormData] = useState<AssessData>({
+    address: '',
     income: '',
     country: '',
     children: [{ name: '', gender: '', age: '', ethnicity: '' }]
@@ -93,7 +150,7 @@ const PersonalizationQuiz = () => {
     <section id="quiz-section" className="min-h-screen px-4 py-16 max-w-4xl mx-auto scroll-mt-28">
       <div className="bg-white rounded-xl shadow-lg p-8 md:p-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-2">Personalization Quiz</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-2">Assess Your Community</h2>
           <p className="text-lg text-gray-600">Help us provide personalized guidance for your family&apos;s future</p>
         </div>
         
@@ -307,4 +364,4 @@ const PersonalizationQuiz = () => {
   );
 };
 
-export default PersonalizationQuiz;
+export default AssessYourCommunity;

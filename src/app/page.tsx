@@ -3,11 +3,11 @@ import { RefObject, useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Welcome from '../components/Welcome'
 import Learn from '../components/Learn'
-import PersonalizationQuiz from '../components/PersonalizationQuiz'
+import PersonalizationQuiz from '../components/AssessQuiz'
 import OpportunityMap from '../components/OpportunityMap'
 import TakeAction from '@/components/action-plan/ActionPlan'
 import NextSteps from '../components/NextSteps'
-import { PersonalizationProvider } from '../components/PersonalizationContext'
+import { PersonalizationProvider } from '../components/AssessQuiz'
 
 interface SavedChoices {
   town: string;
@@ -57,8 +57,8 @@ function Home() {
       <main className="container">
         <PersonalizationProvider>
           <Welcome />
-          <Learn />
           <PersonalizationQuiz />
+          <Learn />
           <OpportunityMap />
           <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
           <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
