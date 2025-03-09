@@ -120,12 +120,6 @@ const AssessYourCommunity = () => {
       // Save to context for use across the site
       setFullData(formData);
       
-      // Scroll to the map section
-      const mapSection = document.getElementById('opportunity-map');
-      if (mapSection) {
-        mapSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      
       // Make the API call
       const response = await fetch('/api/save-family-data', { 
         method: 'POST', 
@@ -140,7 +134,15 @@ const AssessYourCommunity = () => {
       
       // Show success state
       setSubmitSuccess(true);
-      setTimeout(() => setSubmitSuccess(false), 3000);
+      setTimeout(() => setSubmitSuccess(false), 3000); // Show checkmark for 3 seconds
+      
+      // Scroll to the map section after a short delay to ensure data is processed
+      setTimeout(() => {
+        const mapSection = document.getElementById('opportunity-map');
+        if (mapSection) {
+          mapSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -337,7 +339,9 @@ const AssessYourCommunity = () => {
             </div>
           </div>
           
-          {/* Submit Button with Success Checkmark */}
+          {/* No separate success message - using checkmark next to button */}
+          
+          {/* Submit Button */}
           <div className="flex justify-center mt-10">
             <div className="relative inline-flex items-center">
               <button
@@ -347,7 +351,15 @@ const AssessYourCommunity = () => {
                   isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
                 }`}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </span>
+                ) : 'Submit'}
               </button>
               
               {/* Success Checkmark */}
