@@ -56,7 +56,7 @@ interface CensusTractFeature {
 
 const OpportunityMap: React.FC = () => {
   // Ensure we have default values for all properties in data to prevent undefined values
-  const { data = { address: '', children: [] } } = usePersonalization();
+  const { data = { address: '', children: [] }, updateData } = usePersonalization();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [currentZip, setCurrentZip] = useState<string>('');
@@ -1048,9 +1048,12 @@ const OpportunityMap: React.FC = () => {
           // Find a matching entry in our data or use the generated one
           const matchedData = opportunityData.find(item => item.tract === tractId);
           
-          // Set opportunity score based on income level
+          // Set opportunity score based on income level (out of 100, will be displayed as out of 10)
           const score = Math.round(((incomeValue - min) / (max - min)) * 100);
           setOpportunityScore(score);
+          
+          // Save to context for use across the site
+          updateData({ opportunityScore: score });
           
           // Set the current zip with clean formatting
           setCurrentZip(`${tractName ? tractName + ' Census Tract' : 'Census Tract ' + tractId}`);
@@ -1194,24 +1197,6 @@ const OpportunityMap: React.FC = () => {
 
   // Helper function to render score bar removed - only showing opportunity score
 
-  // Add a personalized message if we have personalization data
-  const renderPersonalizedInfo = () => {
-    // Safeguard against undefined or null children array
-    const children = data.children || [];
-    
-    if (children.length > 0 && children[0] && typeof children[0].name === 'string' && children[0].name.trim() !== '') {
-      const childName = children[0].name;
-      return (
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-          <h4 className="font-medium text-blue-800 mb-2">Personalized Insights for {childName}</h4>
-          <p className="text-sm text-blue-700">
-            Based on the opportunity scores for this area, here are some key factors that could affect {childName}'s future outcomes.
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
@@ -1256,9 +1241,9 @@ const OpportunityMap: React.FC = () => {
           <h3 className="text-2xl font-semibold mb-4">Opportunity Score</h3>
           <div className="text-center mb-6">
             <span className="text-5xl font-bold" style={{ color: '#6CD9CA' }}>
-              {opportunityScore ?? '--'}
+              {opportunityScore !== null ? Math.round(opportunityScore / 10) : '--'}
             </span>
-            <span className="text-lg ml-2 text-gray-500">out of 100</span>
+            <span className="text-lg ml-2 text-gray-500">out of 10</span>
           </div>
 
           <div className="mt-4 text-center">
@@ -1279,8 +1264,7 @@ const OpportunityMap: React.FC = () => {
             <p className="text-sm text-gray-500 mt-2">Click on the map to see scores • Use +/- to zoom</p>
           </div>
 
-          {/* Add personalized insights based on quiz data */}
-          {renderPersonalizedInfo()}
+
         </div>
       </div>
     </section>

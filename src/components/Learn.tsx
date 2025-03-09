@@ -1,6 +1,10 @@
 'use client'
 
+import { usePersonalization } from './AssessQuiz';
+
 const Learn = () => {
+  // Get opportunity score from context
+  const { data } = usePersonalization();
   return (
     <section id="learn" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-12">
@@ -14,7 +18,10 @@ const Learn = () => {
           <h3 className="text-xl font-semibold mb-6">Your Opportunity Score</h3>
           <div className="w-40 h-40 rounded-full bg-[#6CD9CA] text-white flex items-center justify-center mb-8 shadow-lg">
             <span className="text-5xl font-bold">
-              5<span className="text-2xl">/10</span>
+              {data.opportunityScore !== null && data.opportunityScore !== undefined 
+                ? Math.round(data.opportunityScore / 10)
+                : '--'}
+              <span className="text-2xl">/10</span>
             </span>
           </div>
         </div>

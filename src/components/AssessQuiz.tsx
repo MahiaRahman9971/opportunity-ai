@@ -15,6 +15,7 @@ export type AssessData = {
   income: string;
   country: string;
   children: ChildInfo[];
+  opportunityScore?: number | null;
 };
 
 interface AssessContextType {
@@ -28,7 +29,8 @@ const defaultData: AssessData = {
   address: '',
   income: '',
   country: '',
-  children: []
+  children: [],
+  opportunityScore: null
 };
 
 const AssessContext = createContext<AssessContextType | undefined>(undefined);
