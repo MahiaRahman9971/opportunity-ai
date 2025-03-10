@@ -20,6 +20,7 @@ export default function Navbar({ progressBarRef }: NavbarProps) {
             <Link href="#learn" className="hover:text-primary transition-colors">Learn</Link>
             <Link href="#take-action" className="hover:text-primary transition-colors">Take Action</Link>
             <Link href="#next-steps" className="hover:text-primary transition-colors">Next Steps</Link>
+            <Link href="#community-connections" className="hover:text-primary transition-colors">Community</Link>
           </div>
         </div>
       </nav>

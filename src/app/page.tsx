@@ -7,6 +7,7 @@ import PersonalizationQuiz, { usePersonalization } from '../components/AssessQui
 import OpportunityMap from '../components/OpportunityMap'
 import TakeAction from '@/components/action-plan/ActionPlan'
 import NextSteps from '../components/NextSteps'
+import CommunityConnections from '../components/CommunityConnections'
 import { PersonalizationProvider } from '../components/AssessQuiz'
 
 interface SavedChoices {
@@ -88,6 +89,7 @@ function HomeContent({
       <Learn />
       <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
       <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
+      <CommunityConnections />
     </>
   );
 }
