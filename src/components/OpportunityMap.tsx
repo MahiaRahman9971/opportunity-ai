@@ -13,37 +13,37 @@ const calculateOpportunityScore = (income: number): number => {
   return Math.min(10, Math.max(1, Math.round((income - 10000) / 5000)));
 };
 
-// Helper function to get color for opportunity score
-const getOpportunityScoreColor = (): string => {
-  // Always return the specified color #6CD9CA
-  return '#6CD9CA';
-};
-
 // Set Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFoaWFyIiwiYSI6ImNtNDY1YnlwdDB2Z2IybHEwd2w3MHJvb3cifQ.wJqnzFFTwLFwYhiPG3SWJA';
+
+// Define GeoJSON types for TypeScript
+type Geometry = GeoJSON.Geometry;
+
+// Define the interface for census tract data
+interface TractData {
+  GEOID?: string;
+  GEO_ID?: string;
+  Household_Income_at_Age_35_rP_gP_p25?: number;
+  [key: string]: unknown; // Allow for other properties
+}
 
 interface OpportunityMapProps {
   address?: string;
   isVisible?: boolean; // New prop to control visibility
 }
 
-const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = true }) => {
-  // If component is not visible, return null early
-  if (!isVisible) {
-    return null;
-  }
-  
+const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
   // Get the personalization context to share opportunity score
   const { updateData } = usePersonalization();
   
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapView, setMapView] = useState<'commuting' | 'census'>('census'); // Always using census view now
-  const [selectedTract, setSelectedTract] = useState<unknown>(null);
+  const [mapView] = useState<'commuting' | 'census'>('census'); // Always using census view now
+  const [selectedTract, setSelectedTract] = useState<TractData | null>(null);
   const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [userTractId, setUserTractId] = useState<string | null>(null);
-  const [userTractGeometry, setUserTractGeometry] = useState<unknown>(null);
+  const [userTractGeometry, setUserTractGeometry] = useState<Geometry | null>(null);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -357,7 +357,12 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
         
         if (features && features.length > 0) {
           console.log('Example feature properties:', features[0].properties);
-          console.log('Available property keys:', Object.keys(features[0].properties));
+          // Add null check before calling Object.keys
+          if (features[0].properties) {
+            console.log('Available property keys:', Object.keys(features[0].properties));
+          } else {
+            console.log('Feature properties is null');
+          }
         } else {
           console.log('No features found in source');
         }
@@ -445,11 +450,16 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
               <p class="text-xs">
                 Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
               </p>
+              <p class="text-xs">Household Income: ${householdIncome}</p>
               <p class="text-xs">County: ${county}</p>
               <p class="text-xs">State: ${state}</p>
             </div>
-          `)
-          .addTo(map.current);
+          `);
+          
+        // Add null check before calling addTo
+        if (map.current) {
+          popupRef.current.addTo(map.current);
+        }
       }
     };
     
@@ -674,8 +684,12 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
                     <p class="text-xs">County: ${county}</p>
                     <p class="text-xs">State: ${state}</p>
                   </div>
-                `)
-                .addTo(map.current);
+                `);
+                
+              // Add null check before calling addTo
+              if (map.current) {
+                popupRef.current.addTo(map.current);
+              }
             }
           } else {
             console.log('No census tract found at coordinates');
@@ -751,7 +765,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
                 <span 
                   className="text-5xl font-bold" 
                   style={{ 
-                    color: getOpportunityScoreColor(calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)) 
+                    color: '#6CD9CA'
                   }}
                 >
                   {calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)}
