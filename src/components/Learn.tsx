@@ -2,6 +2,7 @@
 
 import { usePersonalization } from './AssessQuiz';
 import { useState, useEffect } from 'react';
+import NeighborhoodInsights from './NeighborhoodInsights';
 
 // We'll use the opportunity score from the context instead of calculating it here
 
@@ -40,6 +41,9 @@ const Learn = () => {
             Based on household income at age 35. Higher scores indicate better economic mobility and opportunity.
           </p>
         </div>
+
+        {/* Neighborhood Insights Section - Always shown when address is available */}
+        {data.address && <NeighborhoodInsights />}
 
         <div className="text-center mb-10">
           <p className="max-w-2xl mx-auto">Let&apos;s understand what makes some areas have more opportunities than others:</p>
