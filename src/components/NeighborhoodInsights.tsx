@@ -5,8 +5,25 @@ import { usePersonalization } from './AssessQuiz';
 import { FaSchool, FaShieldAlt, FaHospital, FaStore, FaHome } from 'react-icons/fa';
 import { MdDirectionsBus } from 'react-icons/md';
 
+// Define interfaces for neighborhood data
+interface CategoryData {
+  score: number;
+  description: string;
+  details: string[];
+}
+
+interface NeighborhoodData {
+  schoolQuality: CategoryData;
+  safety: CategoryData;
+  healthcare: CategoryData;
+  amenities: CategoryData;
+  housing: CategoryData;
+  transportation: CategoryData;
+  [key: string]: CategoryData; // Index signature for dynamic access
+}
+
 // This would come from an API in a real application
-const fetchNeighborhoodData = async (address: string) => {
+const fetchNeighborhoodData = async (address: string): Promise<NeighborhoodData> => {
   // Simulate API call with mock data
   // In a real app, this would fetch data from a real API based on the address
   console.log(`Fetching neighborhood data for: ${address}`);
@@ -79,7 +96,7 @@ const fetchNeighborhoodData = async (address: string) => {
 
 const NeighborhoodInsights = () => {
   const { data } = usePersonalization();
-  const [insightsData, setInsightsData] = useState<any>(null);
+  const [insightsData, setInsightsData] = useState<NeighborhoodData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -126,14 +143,6 @@ const NeighborhoodInsights = () => {
     { id: 'housing', name: 'Housing', icon: <FaHome size={24} /> },
     { id: 'transportation', name: 'Transportation', icon: <MdDirectionsBus size={24} /> }
   ];
-
-  // Calculate overall neighborhood score (average of all category scores)
-  const overallScore = parseFloat(
-    (Object.values(insightsData)
-      .reduce((sum: any, category: any) => sum + category.score, 0) / 
-      Object.values(insightsData).length
-    ).toFixed(1)
-  );
 
   return (
     <div className="mt-16">
