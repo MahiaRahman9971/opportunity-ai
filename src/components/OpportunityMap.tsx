@@ -718,41 +718,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             className="map-container h-[500px] rounded-t-xl"
           />
           <div className="p-4 border-t">
-            {/* Map Legend - Only visible when census tracts view is active */}
-            {mapView === 'census' && (
-              <div className="mb-2 p-2 bg-gray-50 rounded-lg w-3/4 mx-auto">
-                <h4 className="text-xs font-semibold mb-1">Opportunity Score (1-10)</h4>
-                <div className="flex h-3 w-full">
-                  <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#d07e59', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#e5a979', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#f4d79e', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#fcfdc1', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#cdddb5', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#9dbda9', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#729d9d', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#4f7f8b', width: '9.1%' }}></div>
-                  <div className="h-full" style={{ backgroundColor: '#34687e', width: '9.1%' }}></div>
-                </div>
-                <div className="flex justify-between text-[10px] mt-1">
-                  <span>1</span>
-                  <span>2</span>
-                  <span>3</span>
-                  <span>4</span>
-                  <span>5</span>
-                  <span>6</span>
-                  <span>7</span>
-                  <span>8</span>
-                  <span>9</span>
-                  <span>10</span>
-                  <span>10+</span>
-                </div>
-                <div className="text-[9px] text-gray-500 mt-1 text-center">
-                  Based on household income at age 35
-                </div>
-              </div>
-            )}
+            {/* Map container footer - empty now that legend has been moved */}
           </div>
         </div>
 
@@ -792,28 +758,46 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             {selectedTract ? 'Click on the map to view data for different areas' : 'Click on a census tract to view detailed information'}
           </p>
 
-          <div className="space-y-4">
-            {[
-              'Segregation',
-              'Income Inequality', 
-              'School Quality', 
-              'Family Structure', 
-              'Social Capital'
-            ].map((label) => (
-              <div key={label} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700">{label}</span>
-                  <span className="text-sm text-gray-500">--</span>
-                </div>
-                <div className="bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-primary rounded-full h-2" 
-                    style={{ width: '0%' }}
-                  />
-                </div>
+          {/* Map Legend - Only visible when census tracts view is active */}
+          {mapView === 'census' && (
+            <div className="mt-6 p-2 bg-gray-50 rounded-lg">
+              <h4 className="text-xs font-semibold mb-1">Opportunity Score (1-10)</h4>
+              <div className="flex h-3 w-full">
+                <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#d07e59', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#e5a979', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#f4d79e', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#fcfdc1', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#cdddb5', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#9dbda9', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#729d9d', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#4f7f8b', width: '9.1%' }}></div>
+                <div className="h-full" style={{ backgroundColor: '#34687e', width: '9.1%' }}></div>
               </div>
-            ))}
-          </div>
+              <div className="flex justify-between text-[10px] mt-1">
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>4</span>
+                <span>5</span>
+                <span>6</span>
+                <span>7</span>
+                <span>8</span>
+                <span>9</span>
+                <span>10</span>
+                <span>10+</span>
+              </div>
+              <div className="flex justify-between text-[10px] mt-1">
+                <span className="text-[#9b252f] font-semibold">bad</span>
+                <span className="flex-grow"></span>
+                <span className="text-[#34687e] font-semibold">good</span>
+              </div>
+              <div className="text-[9px] text-gray-500 mt-1 text-center">
+                Based on household income at age 35
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
