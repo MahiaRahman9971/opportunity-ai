@@ -14,7 +14,7 @@ export default function Navbar({ progressBarRef }: NavbarProps) {
         <div className="flex justify-between items-center h-16">
           <div className="text-primary text-3xl font-bold pl-4 md:pl-10">Opportunity AI</div>
           <div className="hidden md:flex space-x-8 pr-4 md:pr-10">
-            <Link href="#welcome" className="hover:text-primary transition-colors">Home</Link>
+            <Link href="#welcome" className="hover:text-primary transition-colors">Welcome</Link>
             <Link href="#quiz-section" className="hover:text-primary transition-colors">Assess</Link>
             <Link href="#opportunity-map" className="hover:text-primary transition-colors">Opportunity Map</Link>
             <Link href="#learn" className="hover:text-primary transition-colors">Learn</Link>

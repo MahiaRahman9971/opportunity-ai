@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { School, Home } from 'lucide-react'
-import { useAssessment } from '../AssessQuiz'
+import { useAssessment, AssessData } from '../AssessQuiz'
 
 // Define types for the recommendations data
 type TownData = {
@@ -166,7 +166,7 @@ interface MoveProps {
     selectedNeighborhood?: string;
     selectedHousingType?: string;
   }) => void;
-  assessmentData?: any; // Optional assessment data that can be passed from parent
+  assessmentData?: AssessData; 
 }
 
 const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
@@ -181,7 +181,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
   
   // Get assessment data from context if not provided as prop
   const assessmentContext = useAssessment()
-  const contextData = assessmentContext?.assessmentData
+  const contextData = assessmentContext?.data
 
   const handleSchoolSelect = (schoolName: string) => {
     setSelectedSchool(schoolName)
@@ -347,9 +347,9 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       
       const recommendationsData = await response.json();
       setRecommendations(recommendationsData);
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error fetching move recommendations:', err);
-      setError(`Failed to fetch personalized recommendations: ${err.message}. Using default data instead.`);
+      setError(`Failed to fetch personalized recommendations: ${err instanceof Error ? err.message : String(err)}. Using default data instead.`);
       // Use fallback recommendations
       setRecommendations(fallbackRecommendations)
     } finally {
@@ -440,7 +440,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
             <div className="bg-white shadow-md rounded-lg p-6 border-l-4 border-red-500">
               <h3 className="text-2xl font-semibold mb-4 text-left">Notice</h3>
               <p className="text-red-600 mb-4">{error}</p>
-              <p className="mb-4">We're showing you our default recommendations instead.</p>
+              <p className="mb-4">We&apos;re showing you our default recommendations instead.</p>
               <button 
                 onClick={fetchRecommendations}
                 className="bg-[#6CD9CA] hover:bg-opacity-90 text-white py-2 px-4 rounded-md text-sm transition-colors"

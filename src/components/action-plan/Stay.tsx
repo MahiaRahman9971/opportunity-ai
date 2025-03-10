@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { School } from 'lucide-react'
-import { useAssessment } from '../AssessQuiz'
+import { useAssessment, AssessData } from '../AssessQuiz'
 
 // Define types for the recommendations data
 type TownData = {
@@ -82,7 +82,7 @@ interface StayProps {
     selectedSchool: string | null;
     selectedCommunityPrograms: string[];
   }) => void;
-  assessmentData?: any; // Optional assessment data that can be passed from parent
+  assessmentData?: AssessData; 
 }
 
 const Stay: React.FC<StayProps> = ({ onSaveChoices, assessmentData }) => {
@@ -154,9 +154,9 @@ const Stay: React.FC<StayProps> = ({ onSaveChoices, assessmentData }) => {
         
         const data = await response.json()
         setRecommendations(data)
-      } catch (err: any) {
+      } catch (err: Error | unknown) {
         console.error('Error fetching recommendations:', err)
-        setError(`Failed to load personalized recommendations: ${err.message}. Using default data instead.`)
+        setError(`Failed to load personalized recommendations: ${err instanceof Error ? err.message : String(err)}. Using default data instead.`)
         // Fall back to default recommendations (already set as initial state)
       } finally {
         setIsLoading(false)
@@ -176,7 +176,7 @@ const Stay: React.FC<StayProps> = ({ onSaveChoices, assessmentData }) => {
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-600">{error}</p>
-          <p className="mt-2">Please make sure you've completed the assessment form with your address.</p>
+          <p className="mt-2">Please make sure you&apos;ve completed the assessment form with your address.</p>
         </div>
       ) : (
         <>
