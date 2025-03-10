@@ -1,5 +1,5 @@
 // Cache storage for S3 data
-const dataCache: Record<string, { data: any; timestamp: number }> = {};
+const dataCache: Record<string, { data: unknown; timestamp: number }> = {};
 
 // Cache expiration time (in milliseconds) - 24 hours
 const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
@@ -55,15 +55,15 @@ export const getDataFromS3 = async (
     // Use the API route to fetch data from S3
     const apiUrl = `/api/s3?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}&type=${type}`;
     
-    // Add cache-busting parameter if forcing refresh
-    const urlWithCacheBusting = forceRefresh ? `${apiUrl}&_t=${Date.now()}` : apiUrl;
+    // Add cache-busting parameter if needed in the future
+    // const urlWithCacheBusting = `${apiUrl}&_t=${Date.now()}`;
     
-    // Use cache-control headers to improve browser caching
-    const fetchOptions: RequestInit = {
-      headers: {
-        'Cache-Control': 'max-age=3600' // 1 hour
-      }
-    };
+    // Use cache-control headers to improve browser caching if needed
+    // const fetchOptions: RequestInit = {
+    //   headers: {
+    //     'Cache-Control': 'max-age=3600' // 1 hour
+    //   }
+    // };
     
     // Fetch the data using the API route
     const response = await fetch(apiUrl, {

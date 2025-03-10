@@ -42,8 +42,8 @@ export const geocodeAddress = async (address: string): Promise<{lng: number, lat
  */
 export const findCensusTract = (
   map: mapboxgl.Map,
-  coordinates: {lng: number, lat: number},
-  sourceLayer: string
+  coordinates: {lng: number, lat: number}
+  // sourceLayer parameter removed as it was unused
 ): mapboxgl.MapboxGeoJSONFeature | null => {
   try {
     // Query the map for features at the given point

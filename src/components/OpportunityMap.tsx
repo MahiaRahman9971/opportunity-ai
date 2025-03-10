@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { GeoJSON } from 'geojson';
 import { geocodeAddress } from '../utils/geocodingUtils';
 import { usePersonalization } from './AssessQuiz';
 
@@ -14,7 +15,8 @@ const calculateOpportunityScore = (income: number): number => {
 };
 
 // Helper function to get color for opportunity score
-const getOpportunityScoreColor = (): string => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getOpportunityScoreColor = (score?: number): string => {
   // Always return the specified color #6CD9CA
   return '#6CD9CA';
 };
@@ -28,91 +30,123 @@ interface OpportunityMapProps {
 }
 
 const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = true }) => {
-  // If component is not visible, return null early
-  if (!isVisible) {
-    return null;
-  }
-  
   // Get the personalization context to share opportunity score
   const { updateData } = usePersonalization();
   
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapView, setMapView] = useState<'commuting' | 'census'>('census'); // Always using census view now
-  const [selectedTract, setSelectedTract] = useState<any>(null);
+  const [mapView] = useState<'commuting' | 'census'>('census'); // Always using census view now
+  const [selectedTract, setSelectedTract] = useState<Record<string, unknown> | null>(null);
   const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [userTractId, setUserTractId] = useState<string | null>(null);
-  const [userTractGeometry, setUserTractGeometry] = useState<any>(null);
-  const sourceLayerRef = useRef<string>('ct_tract_kfr_rP_gP_p25-8tx22d');
-
-  useEffect(() => {
-    if (map.current) return; // initialize map only once
-    if (!mapContainer.current) return;
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
-      center: [-98.5795, 39.8283], // Centered on USA
-      zoom: 3,
-      projection: 'mercator',
-      renderWorldCopies: false,
-      preserveDrawingBuffer: true
-    });
-
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl());
-
-    // Set up event listener for map loading
-    map.current.on('load', () => {
-      console.log('Map fully loaded');
-      setMapStyleLoaded(true);
-      
-      // Add sources immediately on load
-      if (map.current) {
-        try {
-          // Add streets source
-          map.current.addSource('mapbox-streets', {
-            type: 'vector',
-            url: 'mapbox://mapbox.mapbox-streets-v8'
-          });
+  const [userTractGeometry, setUserTractGeometry] = useState<GeoJSON.Geometry | null>(null);
+  
+  // Function to add event handlers to the map layers
+  const addEventHandlers = useCallback(() => {
+    if (!map.current) return;
+    
+    // Function to handle feature click
+    const handleFeatureClick = (e: mapboxgl.MapLayerMouseEvent) => {
+      if (e.features && e.features.length > 0) {
+        const feature = e.features[0];
+        const properties = feature.properties || {};
+        console.log('Clicked feature properties:', properties);
+        setSelectedTract(properties);
+        
+        // Update the hover layer to highlight the selected tract
+        if (map.current?.getLayer('census-tracts-hover')) {
+          // Check if GEOID exists and is a valid value before using it
+          const geoid = properties.GEOID || properties.GEO_ID || '';
+          if (geoid) {
+            map.current.setFilter('census-tracts-hover', ['==', 'GEOID', geoid]);
+            
+            // Keep the user's tract highlighted if it exists
+            if (userTractId && userTractGeometry && map.current.getSource('user-tract-source')) {
+              (map.current.getSource('user-tract-source') as mapboxgl.GeoJSONSource).setData({
+                type: 'Feature',
+                geometry: userTractGeometry,
+                properties: {}
+              });
+            }
+          } else {
+            // Reset filter if no valid GEOID is found
+            map.current.setFilter('census-tracts-hover', ['==', 'GEOID', '']);
+          }
+        }
+        
+        // Log properties to help debug
+        console.log('Feature properties for popup:', properties);
+        
+        // Get property values with fallbacks
+        const geoid = properties.GEOID || properties.GEO_ID || 'N/A';
+        
+        // Format household income and opportunity score
+        let opportunityScore = 'N/A';
+        if (properties.Household_Income_at_Age_35_rP_gP_p25) {
+          const income = properties.Household_Income_at_Age_35_rP_gP_p25;
+          opportunityScore = calculateOpportunityScore(income).toString();
           
-          // Add data source
-          map.current.addSource('ct-opportunity-data', {
-            type: 'vector',
-            url: 'mapbox://mahiar.bdsxlspn'
+          // Share the opportunity score with other components through context
+          // This ensures the Learn component gets updated when a new tract is clicked
+          updateData({
+            opportunityScore: parseInt(opportunityScore),
+            income: income.toString()
           });
-          
-          // Add layers
-          addMapLayers('ct_tract_kfr_rP_gP_p25-8tx22d');
-        } catch (error) {
-          console.error('Error setting up map on load:', error);
+        }
+        
+        const county = properties.county || properties.COUNTY || 'N/A';
+        const state = properties.state || properties.STATE || 'N/A';
+        
+        // Create popup with info
+        if (popupRef.current) {
+          popupRef.current.remove();
+        }
+        
+        if (map.current) {
+          popupRef.current = new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="font-sans p-1">
+                <h4 class="font-bold text-sm">Census Tract ${geoid}</h4>
+                <p class="text-xs">
+                  Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
+                </p>
+                <p class="text-xs">County: ${county}</p>
+                <p class="text-xs">State: ${state}</p>
+              </div>
+            `)
+            .addTo(map.current);
         }
       }
-    });
-
-    // Clean up on unmount
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
     };
-  }, []);
-
+    
+    // Add click events for the layers
+    map.current.on('click', 'census-tracts-layer', handleFeatureClick);
+    
+    // Setup cursor behavior for the layer
+    map.current.on('mouseenter', 'census-tracts-layer', () => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+    });
+    
+    map.current.on('mouseleave', 'census-tracts-layer', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+    });
+  }, [updateData, userTractId, userTractGeometry]);
+  
   // Function to add map layers with the correct source layer
-  const addMapLayers = (sourceLayer: string) => {
+  const addMapLayers = useCallback((layerSourceLayer: string) => {
     if (!map.current) return;
     
     try {
-      console.log('Adding census tract fill layer with source layer:', sourceLayer);
+      console.log('Adding census tract fill layer with source layer:', layerSourceLayer);
       
       // Add the main fill layer for census tracts first (so it appears below the streets)
       map.current.addLayer({
         id: 'census-tracts-layer',
         type: 'fill',
         source: 'ct-opportunity-data',
-        'source-layer': sourceLayer,
+        'source-layer': layerSourceLayer,
         layout: {
           'visibility': mapView === 'census' ? 'visible' : 'none'
         },
@@ -258,7 +292,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
         id: 'census-tracts-outline',
         type: 'line',
         source: 'ct-opportunity-data',
-        'source-layer': sourceLayer,
+        'source-layer': layerSourceLayer,
         layout: {
           'visibility': mapView === 'census' ? 'visible' : 'none'
         },
@@ -273,7 +307,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
         id: 'census-tracts-hover',
         type: 'line',
         source: 'ct-opportunity-data',
-        'source-layer': sourceLayer,
+        'source-layer': layerSourceLayer,
         layout: {
           'visibility': mapView === 'census' ? 'visible' : 'none'
         },
@@ -352,13 +386,15 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
       // Log feature properties if available
       try {
         const features = map.current.querySourceFeatures('ct-opportunity-data', {
-          sourceLayer: sourceLayer,
+          sourceLayer: layerSourceLayer,
           validate: false
         });
         
         if (features && features.length > 0) {
           console.log('Example feature properties:', features[0].properties);
-          console.log('Available property keys:', Object.keys(features[0].properties));
+          if (features[0].properties) {
+            console.log('Available property keys:', Object.keys(features[0].properties));
+          }
         } else {
           console.log('No features found in source');
         }
@@ -369,103 +405,69 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
       // Add event handlers
       addEventHandlers();
       
-      console.log('Successfully added layers with source layer:', sourceLayer);
+      console.log('Successfully added layers with source layer:', layerSourceLayer);
     } catch (error) {
       console.error('Error adding map layers:', error);
     }
-  };
+  }, [mapView, addEventHandlers]);
   
-  // Function to add event handlers to the map layers
-  const addEventHandlers = () => {
-    if (!map.current) return;
-    
-    // Function to handle feature click
-    const handleFeatureClick = (e: mapboxgl.MapLayerMouseEvent) => {
-      if (e.features && e.features.length > 0) {
-        const feature = e.features[0];
-        const properties = feature.properties;
-        console.log('Clicked feature properties:', properties);
-        setSelectedTract(properties);
-        
-        // Update the hover layer to highlight the selected tract
-        if (map.current?.getLayer('census-tracts-hover')) {
-          // Check if GEOID exists and is a valid value before using it
-          const geoid = properties.GEOID || properties.GEO_ID || '';
-          if (geoid) {
-            map.current.setFilter('census-tracts-hover', ['==', 'GEOID', geoid]);
-            
-            // Keep the user's tract highlighted if it exists
-            if (userTractId && userTractGeometry && map.current.getSource('user-tract-source')) {
-              (map.current.getSource('user-tract-source') as mapboxgl.GeoJSONSource).setData({
-                type: 'Feature',
-                geometry: userTractGeometry,
-                properties: {}
-              });
-            }
-          } else {
-            // Reset filter if no valid GEOID is found
-            map.current.setFilter('census-tracts-hover', ['==', 'GEOID', '']);
-          }
-        }
-        
-        // Log properties to help debug
-        console.log('Feature properties for popup:', properties);
-        
-        // Get property values with fallbacks
-        const geoid = properties.GEOID || properties.GEO_ID || 'N/A';
-        
-        // Format household income
-        let householdIncome = 'N/A';
-        let opportunityScore = 'N/A';
-        if (properties.Household_Income_at_Age_35_rP_gP_p25) {
-          const income = properties.Household_Income_at_Age_35_rP_gP_p25;
-          householdIncome = '$' + Math.round(income).toLocaleString();
-          opportunityScore = calculateOpportunityScore(income).toString();
-          
-          // Share the opportunity score with other components through context
-          // This ensures the Learn component gets updated when a new tract is clicked
-          updateData({
-            opportunityScore: parseInt(opportunityScore),
-            income: income.toString()
+
+
+  // Initialize map when component mounts
+  useEffect(() => {
+    if (!isVisible) return;
+    if (map.current) return; // initialize map only once
+    if (!mapContainer.current) return;
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [-98.5795, 39.8283], // Centered on USA
+      zoom: 3,
+      projection: 'mercator',
+      renderWorldCopies: false,
+      preserveDrawingBuffer: true
+    });
+
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl());
+
+    // Set up event listener for map loading
+    map.current.on('load', () => {
+      console.log('Map fully loaded');
+      setMapStyleLoaded(true);
+      
+      // Add sources immediately on load
+      if (map.current) {
+        try {
+          // Add streets source
+          map.current.addSource('mapbox-streets', {
+            type: 'vector',
+            url: 'mapbox://mapbox.mapbox-streets-v8'
           });
+          
+          // Add data source
+          map.current.addSource('ct-opportunity-data', {
+            type: 'vector',
+            url: 'mapbox://mahiar.bdsxlspn'
+          });
+          
+          // Add layers
+          addMapLayers('ct_tract_kfr_rP_gP_p25-8tx22d');
+        } catch (error) {
+          console.error('Error setting up map on load:', error);
         }
-        
-        const county = properties.county || properties.COUNTY || 'N/A';
-        const state = properties.state || properties.STATE || 'N/A';
-        
-        // Create popup with info
-        if (popupRef.current) {
-          popupRef.current.remove();
-        }
-        
-        popupRef.current = new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`
-            <div class="font-sans p-1">
-              <h4 class="font-bold text-sm">Census Tract ${geoid}</h4>
-              <p class="text-xs">
-                Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
-              </p>
-              <p class="text-xs">County: ${county}</p>
-              <p class="text-xs">State: ${state}</p>
-            </div>
-          `)
-          .addTo(map.current);
+      }
+    });
+
+    // Clean up on unmount
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
       }
     };
-    
-    // Add click events for the layers
-    map.current.on('click', 'census-tracts-layer', handleFeatureClick);
-    
-    // Setup cursor behavior for the layer
-    map.current.on('mouseenter', 'census-tracts-layer', () => {
-      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-    });
-    
-    map.current.on('mouseleave', 'census-tracts-layer', () => {
-      if (map.current) map.current.getCanvas().style.cursor = '';
-    });
-  };
+  }, [addMapLayers, isVisible]);
   
   // Update layer visibility when mapView changes
   useEffect(() => {
@@ -558,7 +560,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
       setSelectedTract(null);
       if (popupRef.current) popupRef.current.remove();
     }
-  }, [mapView, mapStyleLoaded]);
+  }, [mapView, mapStyleLoaded, addMapLayers]);
 
   // Effect to handle address changes and zoom to the corresponding census tract
   useEffect(() => {
@@ -600,7 +602,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
             console.log('Found census tract:', properties);
             
             // Get the tract ID
-            const tractId = properties.GEOID || properties.GEO_ID || '';
+            const tractId = properties && (properties.GEOID || properties.GEO_ID || '');
             if (tractId) {
               setUserTractId(tractId);
               
@@ -643,12 +645,12 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
                 popupRef.current.remove();
               }
               
-              // Format household income
-              let householdIncome = 'N/A';
+              // Format household income and opportunity score
               let opportunityScore = 'N/A';
+              let formattedIncome = 'N/A';
               if (properties.Household_Income_at_Age_35_rP_gP_p25) {
                 const income = properties.Household_Income_at_Age_35_rP_gP_p25;
-                householdIncome = '$' + Math.round(income).toLocaleString();
+                formattedIncome = '$' + Math.round(income).toLocaleString();
                 opportunityScore = calculateOpportunityScore(income).toString();
                 
                 // Share the opportunity score with other components through context
@@ -671,7 +673,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
                     <p class="text-xs">
                       Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
                     </p>
-                    <p class="text-xs">Household Income: ${householdIncome}</p>
+                    <p class="text-xs">Household Income: ${formattedIncome}</p>
                     <p class="text-xs">County: ${county}</p>
                     <p class="text-xs">State: ${state}</p>
                   </div>
@@ -688,8 +690,13 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
     };
     
     zoomToAddress();
-  }, [address, mapStyleLoaded]);
+  }, [address, mapStyleLoaded, updateData]);
 
+  // If component is not visible, return null after hooks are called
+  if (!isVisible) {
+    return null;
+  }
+  
   return (
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
       <div className="text-center mb-10">
@@ -747,15 +754,15 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-2xl font-semibold mb-4">Opportunity Score</h3>
           <div className="text-center mb-6">
-            {selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 ? (
+            {selectedTract && typeof selectedTract.Household_Income_at_Age_35_rP_gP_p25 === 'number' ? (
               <>
                 <span 
                   className="text-5xl font-bold" 
                   style={{ 
-                    color: getOpportunityScoreColor(calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)) 
+                    color: getOpportunityScoreColor(calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25 as number)) 
                   }}
                 >
-                  {calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)}
+                  {calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25 as number)}
                 </span>
                 <span className="text-lg ml-2 text-gray-500">out of 10</span>
               </>
@@ -768,8 +775,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = tr
           </div>
           <div className="text-center mb-4">
             <span className="text-lg text-gray-700">
-              {selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 
-                ? '$' + Math.round(selectedTract.Household_Income_at_Age_35_rP_gP_p25).toLocaleString() 
+              {selectedTract && typeof selectedTract.Household_Income_at_Age_35_rP_gP_p25 === 'number' 
+                ? '$' + Math.round(selectedTract.Household_Income_at_Age_35_rP_gP_p25 as number).toLocaleString() 
                 : '--'}
             </span>
             <span className="text-sm ml-1 text-gray-500">household income</span>
