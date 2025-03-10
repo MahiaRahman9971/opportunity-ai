@@ -71,7 +71,7 @@ export const usePersonalization = useAssessment;
 export { AssessProvider as PersonalizationProvider };
 
 const AssessYourCommunity = () => {
-  const { setFullData, data } = useAssessment();
+  const { setFullData } = useAssessment();
   
   // Initialize formData with ALL fields, including address
   const [formData, setFormData] = useState<AssessData>({

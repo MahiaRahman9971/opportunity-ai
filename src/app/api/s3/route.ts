@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 
 // Server-side cache for S3 data
@@ -36,7 +35,7 @@ const fetchFromS3WithRegionFallback = async (bucket: string, key: string) => {
     'eu-west-1'
   ];
   
-  let lastError: any = null;
+  let lastError: unknown = null;
   
   // Try each region
   for (const region of regionsToTry) {

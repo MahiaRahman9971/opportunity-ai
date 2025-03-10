@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { geocodeAddress, findCensusTract, highlightCensusTract } from '../utils/geocodingUtils';
+import { geocodeAddress } from '../utils/geocodingUtils';
 import { usePersonalization } from './AssessQuiz';
 
 // Helper function to calculate opportunity score based on household income
@@ -14,7 +14,7 @@ const calculateOpportunityScore = (income: number): number => {
 };
 
 // Helper function to get color for opportunity score
-const getOpportunityScoreColor = (score: number): string => {
+const getOpportunityScoreColor = (): string => {
   // Always return the specified color #6CD9CA
   return '#6CD9CA';
 };
