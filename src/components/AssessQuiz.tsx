@@ -1,17 +1,81 @@
 'use client'
-import { useState } from 'react';
+import { useState, createContext, useContext, ReactNode } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
-import { usePersonalization, PersonalizationData } from './PersonalizationContext';
 
-// Child information structure is defined in PersonalizationData type in PersonalizationContext
-// No need for a separate interface here
+// Define all the types we need
+type ChildInfo = {
+  name: string;
+  gender: string;
+  age: string;
+  ethnicity: string;
+};
 
-const PersonalizationQuiz = () => {
-  const { setFullData } = usePersonalization();
+export type AssessData = {
+  address: string;
+  income: string;
+  country: string;
+  children: ChildInfo[];
+  opportunityScore?: number | null;
+};
+
+interface AssessContextType {
+  data: AssessData;
+  updateData: (data: Partial<AssessData>) => void;
+  setFullData: (data: AssessData) => void;
+}
+
+// Initial default values
+const defaultData: AssessData = {
+  address: '',
+  income: '',
+  country: '',
+  children: [],
+  opportunityScore: null
+};
+
+const AssessContext = createContext<AssessContextType | undefined>(undefined);
+
+export function AssessProvider({ children }: { children: ReactNode }) {
+  const [data, setData] = useState<AssessData>(defaultData);
+
+  const updateData = (newData: Partial<AssessData>) => {
+    setData(prevData => ({
+      ...prevData,
+      ...newData
+    }));
+  };
+
+  const setFullData = (newData: AssessData) => {
+    setData(newData);
+  };
+
+  return (
+    <AssessContext.Provider value={{ data, updateData, setFullData }}>
+      {children}
+    </AssessContext.Provider>
+  );
+}
+
+export function useAssessment() {
+  const context = useContext(AssessContext);
+  if (context === undefined) {
+    throw new Error('useAssessment must be used within an AssessProvider');
+  }
+  return context;
+}
+
+// Alias for backward compatibility
+export const usePersonalization = useAssessment;
+
+// Alias for backward compatibility
+export { AssessProvider as PersonalizationProvider };
+
+const AssessYourCommunity = () => {
+  const { setFullData } = useAssessment();
   
   // Initialize formData with ALL fields, including address
-  const [formData, setFormData] = useState<PersonalizationData>({
-    address: '', // Address field for location
+  const [formData, setFormData] = useState<AssessData>({
+    address: '',
     income: '',
     country: '',
     children: [{ name: '', gender: '', age: '', ethnicity: '' }]
@@ -56,12 +120,6 @@ const PersonalizationQuiz = () => {
       // Save to context for use across the site
       setFullData(formData);
       
-      // Scroll to the map section
-      const mapSection = document.getElementById('opportunity-map');
-      if (mapSection) {
-        mapSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      
       // Make the API call
       const response = await fetch('/api/save-family-data', { 
         method: 'POST', 
@@ -76,7 +134,15 @@ const PersonalizationQuiz = () => {
       
       // Show success state
       setSubmitSuccess(true);
-      setTimeout(() => setSubmitSuccess(false), 3000);
+      setTimeout(() => setSubmitSuccess(false), 3000); // Show checkmark for 3 seconds
+      
+      // Scroll to the map section after a short delay to ensure data is processed
+      setTimeout(() => {
+        const mapSection = document.getElementById('opportunity-map');
+        if (mapSection) {
+          mapSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -88,7 +154,7 @@ const PersonalizationQuiz = () => {
     <section id="quiz-section" className="min-h-screen px-4 py-16 max-w-4xl mx-auto scroll-mt-28">
       <div className="bg-white rounded-xl shadow-lg p-8 md:p-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-2">Personalization Quiz</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-2">Assess Your Community</h2>
           <p className="text-lg text-gray-600">Help us provide personalized guidance for your family&apos;s future</p>
         </div>
         
@@ -273,7 +339,9 @@ const PersonalizationQuiz = () => {
             </div>
           </div>
           
-          {/* Submit Button with Success Checkmark */}
+          {/* No separate success message - using checkmark next to button */}
+          
+          {/* Submit Button */}
           <div className="flex justify-center mt-10">
             <div className="relative inline-flex items-center">
               <button
@@ -283,7 +351,15 @@ const PersonalizationQuiz = () => {
                   isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
                 }`}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </span>
+                ) : 'Submit'}
               </button>
               
               {/* Success Checkmark */}
@@ -302,4 +378,4 @@ const PersonalizationQuiz = () => {
   );
 };
 
-export default PersonalizationQuiz;
+export default AssessYourCommunity;

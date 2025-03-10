@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-// Import commented out as it's not used but may be needed in the future
-// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 
-// Server-side cache implementation
+// Server-side cache for S3 data
 interface CacheEntry {
-  data: string | object;
-  contentType: string;
+  data: string;
   timestamp: number;
-  expiresIn: number; // milliseconds
+  contentType: string;
 }
 
-const s3Cache: Record<string, CacheEntry> = {};
-const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-// Create a cache key from bucket, key and type
-const createCacheKey = (bucket: string, key: string, type: string): string => {
-  return `${bucket}:${key}:${type}`;
-};
+// Cache with a 24-hour expiration
+const S3_CACHE: Record<string, CacheEntry> = {};
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 // Create a function to get an S3 client for a specific region
 const getS3Client = (region: string = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1') => {
@@ -42,7 +35,7 @@ const fetchFromS3WithRegionFallback = async (bucket: string, key: string) => {
     'eu-west-1'
   ];
   
-  let lastError: Error | null = null;
+  let lastError: unknown = null;
   
   // Try each region
   for (const region of regionsToTry) {
@@ -104,7 +97,7 @@ export async function GET(request: NextRequest) {
   const bucket = searchParams.get('bucket');
   const key = searchParams.get('key');
   const type = searchParams.get('type') || 'json'; // Default to JSON
-  const forceRefresh = searchParams.get('_t') !== null; // Check if cache busting parameter is present
+  const skipCache = searchParams.get('skipCache') === 'true';
   
   // Validate parameters
   if (!bucket || !key) {
@@ -114,42 +107,39 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  // Create cache key
-  const cacheKey = createCacheKey(bucket, key, type);
+  // Create a cache key
+  const cacheKey = `${bucket}:${key}:${type}`;
   
-  // Check if we have a valid cached version
-  if (!forceRefresh && s3Cache[cacheKey]) {
-    const cached = s3Cache[cacheKey];
+  // Check if we have a valid cache entry
+  if (!skipCache && S3_CACHE[cacheKey]) {
+    const { data, timestamp, contentType } = S3_CACHE[cacheKey];
     const now = Date.now();
     
-    // If the cache entry is still valid, return it
-    if (now - cached.timestamp < cached.expiresIn) {
-      console.log(`Using cached S3 data for ${key}`);
+    // If the cache entry is still valid
+    if (now - timestamp < CACHE_EXPIRATION) {
+      console.log(`Server cache hit for ${cacheKey}`);
       
       // Return the cached data with appropriate headers
-      if (type === 'csv') {
-        return new NextResponse(cached.data as string, {
-          headers: {
-            'Content-Type': 'text/csv',
-            'Cache-Control': 'max-age=3600',
-            'X-Cache': 'HIT'
-          },
-        });
-      } else {
-        return NextResponse.json(cached.data, {
-          headers: {
-            'Cache-Control': 'max-age=3600',
-            'X-Cache': 'HIT'
-          }
-        });
-      }
+      return new NextResponse(data, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=86400', // 24 hours
+          'X-Cache': 'HIT',
+          'ETag': `W/"${Buffer.from(cacheKey).toString('base64')}"`,
+        },
+      });
+    } else {
+      // Cache entry expired, remove it
+      console.log(`Server cache expired for ${cacheKey}`);
+      delete S3_CACHE[cacheKey];
     }
   }
   
   try {
-    console.log(`Fetching S3 data for ${key}...`);
     // Get the object from S3 with region fallback
+    console.time(`S3 fetch: ${cacheKey}`);
     const response = await fetchFromS3WithRegionFallback(bucket, key);
+    console.timeEnd(`S3 fetch: ${cacheKey}`);
     
     if (!response.Body) {
       throw new Error('Empty response body');
@@ -158,61 +148,37 @@ export async function GET(request: NextRequest) {
     // Convert the readable stream to text
     const bodyContents = await streamToText(response.Body as Readable);
     
-    // Return the appropriate response based on the requested type
-    if (type === 'csv') {
-      // Cache the CSV data
-      s3Cache[cacheKey] = {
-        data: bodyContents,
-        contentType: 'text/csv',
-        timestamp: Date.now(),
-        expiresIn: CACHE_EXPIRY
-      };
-      
-      return new NextResponse(bodyContents, {
-        headers: {
-          'Content-Type': 'text/csv',
-          'Cache-Control': 'max-age=3600',
-          'X-Cache': 'MISS'
-        },
-      });
-    } else {
-      // For JSON, parse and then stringify to ensure valid JSON
+    // Determine content type based on the requested type
+    const contentType = type === 'csv' ? 'text/csv' : 'application/json';
+    
+    // Process the data based on the requested type
+    let processedData = bodyContents;
+    if (type === 'json') {
       try {
-        const jsonData = JSON.parse(bodyContents);
-        
-        // Cache the JSON data
-        s3Cache[cacheKey] = {
-          data: jsonData,
-          contentType: 'application/json',
-          timestamp: Date.now(),
-          expiresIn: CACHE_EXPIRY
-        };
-        
-        return NextResponse.json(jsonData, {
-          headers: {
-            'Cache-Control': 'max-age=3600',
-            'X-Cache': 'MISS'
-          }
-        });
-      } catch {
-        // If parsing fails, return the raw text
-        // Cache the raw text
-        s3Cache[cacheKey] = {
-          data: bodyContents,
-          contentType: 'application/json',
-          timestamp: Date.now(),
-          expiresIn: CACHE_EXPIRY
-        };
-        
-        return new NextResponse(bodyContents, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'max-age=3600',
-            'X-Cache': 'MISS'
-          },
-        });
+        // Ensure it's valid JSON by parsing and re-stringifying
+        processedData = JSON.stringify(JSON.parse(bodyContents));
+      } catch (e) {
+        // If parsing fails, use the raw text
+        console.warn('Failed to parse JSON, using raw text:', e);
       }
     }
+    
+    // Cache the data for future requests
+    S3_CACHE[cacheKey] = {
+      data: processedData,
+      timestamp: Date.now(),
+      contentType
+    };
+    
+    // Return the response with appropriate headers
+    return new NextResponse(processedData, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400', // 24 hours
+        'X-Cache': 'MISS',
+        'ETag': `W/"${Buffer.from(cacheKey).toString('base64')}"`,
+      },
+    });
   } catch (error) {
     console.error('Error fetching from S3:', error);
     return NextResponse.json(

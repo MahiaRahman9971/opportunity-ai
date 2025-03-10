@@ -1,40 +1,48 @@
 'use client'
 
-import Image from 'next/image'
+import { usePersonalization } from './AssessQuiz';
+import { useState, useEffect } from 'react';
+
+// We'll use the opportunity score from the context instead of calculating it here
 
 const Learn = () => {
+  // Get opportunity score from context
+  const { data } = usePersonalization();
+  const [opportunityScore, setOpportunityScore] = useState<number | null>(null);
+  
+  // Use the opportunity score from the context
+  useEffect(() => {
+    // If we have an opportunity score from the map, use it
+    if (data.opportunityScore !== undefined && data.opportunityScore !== null) {
+      setOpportunityScore(data.opportunityScore);
+    }
+  }, [data.opportunityScore]);
   return (
     <section id="learn" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Learn About Opportunity</h1>
-        <p className="text-xl">Opportunity in America depends on where you live</p>
-      </div>
-
-      {/* Map Visualization */}
-      <div className="mb-16 relative">
-        <div className="mb-6 relative">
-          <Image 
-            src="/images/opportunity-map.jpg" 
-            alt="Map of opportunity in America" 
-            width={800} 
-            height={480} 
-            className="mx-auto w-full max-w-3xl h-auto"
-            priority
-          />
-          <div className="absolute top-4 left-4 text-sm md:text-base">
-            <p>Blue areas are high opportunity</p>
-          </div>
-          <div className="absolute bottom-4 right-4 text-sm md:text-base">
-            <p>Red areas are Low opportunity</p>
-          </div>
-        </div>
       </div>
 
       {/* Why opportunities vary section */}
       <div className="mb-16">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-2">Why do opportunities vary by area?</h2>
-          <p>Let&apos;s understand what makes some areas have more opportunities than others:</p>
+        {/* Community Score */}
+        <div className="flex flex-col items-center justify-center mb-12">
+          <h3 className="text-xl font-semibold mb-6">Your Opportunity Score</h3>
+          <div className="w-40 h-40 rounded-full bg-[#6CD9CA] text-white flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-5xl font-bold">
+              {opportunityScore !== null 
+                ? opportunityScore
+                : '--'}
+              <span className="text-2xl">/10</span>
+            </span>
+          </div>
+          <p className="text-sm text-gray-600 max-w-md text-center mb-8">
+            Based on household income at age 35. Higher scores indicate better economic mobility and opportunity.
+          </p>
+        </div>
+
+        <div className="text-center mb-10">
+          <p className="max-w-2xl mx-auto">Let&apos;s understand what makes some areas have more opportunities than others:</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -152,19 +160,6 @@ const Learn = () => {
             </div>
             <h3 className="text-base font-semibold mb-1 text-center">Career Success</h3>
             <p className="text-sm text-center text-gray-700">Build professional skills and networks for long-term financial stability</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Call to Action Section */}
-      <div className="text-center mt-16 mb-8">
-        <h2 className="text-2xl md:text-3xl font-semibold mb-2">Ready to explore opportunities in your area?</h2>
-        <p className="text-xl mb-6">Let&apos;s do it!</p>
-        <div className="flex justify-center">
-          <div className="text-primary text-4xl animate-bounce">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12">
-              <path d="M11,4H13V16L18.5,10.5L19.92,11.92L12,19.84L4.08,11.92L5.5,10.5L11,16V4Z" />
-            </svg>
           </div>
         </div>
       </div>
