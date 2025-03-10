@@ -3,17 +3,25 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { geocodeAddress, findCensusTract, highlightCensusTract } from '../utils/geocodingUtils';
 
 // Set Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFoaWFyIiwiYSI6ImNtNDY1YnlwdDB2Z2IybHEwd2w3MHJvb3cifQ.wJqnzFFTwLFwYhiPG3SWJA';
 
-const OpportunityMap: React.FC = () => {
+interface OpportunityMapProps {
+  address?: string;
+}
+
+const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapView, setMapView] = useState<'commuting' | 'census'>('census'); // Default to census view
+  const [mapView, setMapView] = useState<'commuting' | 'census'>('census'); // Always using census view now
   const [selectedTract, setSelectedTract] = useState<any>(null);
   const [mapStyleLoaded, setMapStyleLoaded] = useState(false);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const [userTractId, setUserTractId] = useState<string | null>(null);
+  const [userTractGeometry, setUserTractGeometry] = useState<any>(null);
+  const sourceLayerRef = useRef<string>('ct_tract_kfr_rP_gP_p25-8tx22d');
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -69,36 +77,7 @@ const OpportunityMap: React.FC = () => {
     };
   }, []);
 
-  // Function to add the source to the map
-  const addMapSource = () => {
-    if (!map.current) return;
-    
-    try {
-      console.log('Adding vector sources');
-      
-      // Add streets source first
-      if (!map.current.getSource('mapbox-streets')) {
-        map.current.addSource('mapbox-streets', {
-          type: 'vector',
-          url: 'mapbox://mapbox.mapbox-streets-v8'
-        });
-      }
-      
-      // Check if the opportunity data source already exists before adding
-      if (!map.current.getSource('ct-opportunity-data')) {
-        map.current.addSource('ct-opportunity-data', {
-          type: 'vector',
-          url: 'mapbox://mahiar.bdsxlspn'
-        });
-      }
-      
-      // Add layers after adding the sources
-      // Use the correct source-layer value based on Image 2: 'ct_tract_kfr_rP_gP_p25-8tx22d'
-      addMapLayers('ct_tract_kfr_rP_gP_p25-8tx22d');
-    } catch (error) {
-      console.error('Error adding source:', error);
-    }
-  };
+  // Note: Map sources are added in the map.on('load') callback
 
   // Function to add map layers with the correct source layer
   const addMapLayers = (sourceLayer: string) => {
@@ -162,11 +141,11 @@ const OpportunityMap: React.FC = () => {
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.5,  // At zoom level 8, street outlines are very thin
-            10, 0.75, // At zoom level 10, street outlines are thin
-            12, 1,   // At zoom level 12, street outlines are still thin
-            15, 1.5, // At zoom level 15, street outlines are medium
-            20, 2    // At zoom level 20, street outlines are thicker but still subtle
+            8, 0.25,  // At zoom level 8, street outlines are extremely thin
+            10, 0.4, // At zoom level 10, street outlines are very thin
+            12, 0.6, // At zoom level 12, street outlines are thin
+            15, 0.8, // At zoom level 15, street outlines are medium-thin
+            20, 1.2  // At zoom level 20, street outlines are thinner than before
           ],
           'line-opacity': 0.8
         }
@@ -217,11 +196,11 @@ const OpportunityMap: React.FC = () => {
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.75, // At zoom level 8, major street outlines are thin
-            10, 1,   // At zoom level 10, major street outlines are thin
-            12, 1.5, // At zoom level 12, major street outlines are medium
-            15, 2,   // At zoom level 15, major street outlines are thicker
-            20, 3    // At zoom level 20, major street outlines are thick but still subtle
+            8, 0.4, // At zoom level 8, major street outlines are very thin
+            10, 0.6, // At zoom level 10, major street outlines are thin
+            12, 0.8, // At zoom level 12, major street outlines are medium-thin
+            15, 1.2, // At zoom level 15, major street outlines are medium
+            20, 1.8  // At zoom level 20, major street outlines are thinner than before
           ],
           'line-opacity': 0.9
         }
@@ -287,6 +266,72 @@ const OpportunityMap: React.FC = () => {
         filter: ['==', 'GEOID', ''] // Default empty filter
       });
       
+      // Add a custom source for the user's location
+      map.current.addSource('user-location-source', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [0, 0]
+          },
+          properties: {}
+        }
+      });
+      
+      // Add a symbol layer with a large black dot for the user's location
+      map.current.addLayer({
+        id: 'user-location-symbol',
+        type: 'circle',
+        source: 'user-location-source',
+        layout: {
+          'visibility': mapView === 'census' ? 'visible' : 'none'
+        },
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#000000',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+      
+      // Add a custom source for the user's tract outline
+      map.current.addSource('user-tract-source', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[]]
+          },
+          properties: {}
+        }
+      });
+      
+      // Add a thick black outline layer for the user's tract (slightly less thick)
+      map.current.addLayer({
+        id: 'user-tract-outline',
+        type: 'line',
+        source: 'user-tract-source',
+        layout: {
+          'visibility': mapView === 'census' ? 'visible' : 'none'
+        },
+        paint: {
+          'line-color': '#000000',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            8, 3,   // At zoom level 8, width is 3px
+            10, 5,  // At zoom level 10, width is 5px
+            12, 8,  // At zoom level 12, width is 8px
+            14, 12   // At zoom level 14, width is 12px
+          ]
+        }
+      });
+      
+      // Remove the white inner outline
+      
       // Log available properties in the first feature to help debug
       try {
         const features = map.current.querySourceFeatures('ct-opportunity-data', {
@@ -331,6 +376,15 @@ const OpportunityMap: React.FC = () => {
           const geoid = properties.GEOID || properties.GEO_ID || '';
           if (geoid) {
             map.current.setFilter('census-tracts-hover', ['==', 'GEOID', geoid]);
+            
+            // Keep the user's tract highlighted if it exists
+            if (userTractId && userTractGeometry && map.current.getSource('user-tract-source')) {
+              (map.current.getSource('user-tract-source') as mapboxgl.GeoJSONSource).setData({
+                type: 'Feature',
+                geometry: userTractGeometry,
+                properties: {}
+              });
+            }
           } else {
             // Reset filter if no valid GEOID is found
             map.current.setFilter('census-tracts-hover', ['==', 'GEOID', '']);
@@ -412,6 +466,25 @@ const OpportunityMap: React.FC = () => {
         mapView === 'census' ? 'visible' : 'none'
       );
       
+      // Also update user tract outline visibility
+      if (map.current.getLayer('user-tract-outline')) {
+        map.current.setLayoutProperty(
+          'user-tract-outline',
+          'visibility',
+          mapView === 'census' ? 'visible' : 'none'
+        );
+      }
+      
+      if (map.current.getLayer('user-location-symbol')) {
+        map.current.setLayoutProperty(
+          'user-location-symbol',
+          'visibility',
+          mapView === 'census' ? 'visible' : 'none'
+        );
+      }
+      
+      // No inner outline layer anymore
+      
       // Make streets more visible when in census view
       if (map.current.getLayer('streets-layer')) {
         map.current.setPaintProperty(
@@ -429,8 +502,29 @@ const OpportunityMap: React.FC = () => {
         );
       }
     } else if (mapStyleLoaded && map.current) {
-      // If layers don't exist yet but map is loaded, try adding them
-      addMapSource();
+      // If layers don't exist yet but map is loaded, try adding them directly
+      try {
+        // Add streets source
+        if (!map.current.getSource('mapbox-streets')) {
+          map.current.addSource('mapbox-streets', {
+            type: 'vector',
+            url: 'mapbox://mapbox.mapbox-streets-v8'
+          });
+        }
+        
+        // Add data source
+        if (!map.current.getSource('ct-opportunity-data')) {
+          map.current.addSource('ct-opportunity-data', {
+            type: 'vector',
+            url: 'mapbox://mahiar.bdsxlspn'
+          });
+        }
+        
+        // Add layers
+        addMapLayers('ct_tract_kfr_rP_gP_p25-8tx22d');
+      } catch (error) {
+        console.error('Error setting up map sources and layers:', error);
+      }
     }
     
     // Clear any selected tract when switching views
@@ -439,6 +533,124 @@ const OpportunityMap: React.FC = () => {
       if (popupRef.current) popupRef.current.remove();
     }
   }, [mapView, mapStyleLoaded]);
+
+  // Effect to handle address changes and zoom to the corresponding census tract
+  useEffect(() => {
+    const zoomToAddress = async () => {
+      if (!address || !map.current || !mapStyleLoaded) return;
+      
+      try {
+        console.log('Geocoding address:', address);
+        
+        // Geocode the address to get coordinates
+        const coordinates = await geocodeAddress(address);
+        if (!coordinates) {
+          console.error('Failed to geocode address:', address);
+          return;
+        }
+        
+        console.log('Coordinates:', coordinates);
+        
+        // Fly to the coordinates
+        map.current.flyTo({
+          center: [coordinates.lng, coordinates.lat],
+          zoom: 12,
+          essential: true
+        });
+        
+        // Wait for the map to finish moving before querying for features
+        map.current.once('moveend', () => {
+          if (!map.current) return;
+          
+          // Find the census tract at these coordinates
+          const point = map.current.project([coordinates.lng, coordinates.lat]);
+          const features = map.current.queryRenderedFeatures(point, {
+            layers: ['census-tracts-layer']
+          });
+          
+          if (features && features.length > 0) {
+            const feature = features[0];
+            const properties = feature.properties;
+            console.log('Found census tract:', properties);
+            
+            // Get the tract ID
+            const tractId = properties.GEOID || properties.GEO_ID || '';
+            if (tractId) {
+              setUserTractId(tractId);
+              
+              // Highlight the tract
+              if (map.current.getLayer('census-tracts-hover')) {
+                map.current.setFilter('census-tracts-hover', ['==', 'GEOID', tractId]);
+              }
+              
+              // Store the geometry for the user's tract
+              if (feature.geometry) {
+                setUserTractGeometry(feature.geometry);
+                
+                // Update the user tract source with the new geometry
+                if (map.current.getSource('user-tract-source')) {
+                  (map.current.getSource('user-tract-source') as mapboxgl.GeoJSONSource).setData({
+                    type: 'Feature',
+                    geometry: feature.geometry,
+                    properties: {}
+                  });
+                }
+                
+                // Also update the user location point
+                if (map.current.getSource('user-location-source')) {
+                  (map.current.getSource('user-location-source') as mapboxgl.GeoJSONSource).setData({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [coordinates.lng, coordinates.lat]
+                    },
+                    properties: {}
+                  });
+                }
+              }
+              
+              // Set the selected tract to show its details
+              setSelectedTract(properties);
+              
+              // Create a popup with the tract info
+              if (popupRef.current) {
+                popupRef.current.remove();
+              }
+              
+              // Format household income
+              let householdIncome = 'N/A';
+              if (properties.Household_Income_at_Age_35_rP_gP_p25) {
+                const income = properties.Household_Income_at_Age_35_rP_gP_p25;
+                householdIncome = '$' + Math.round(income).toLocaleString();
+              }
+              
+              const county = properties.county || properties.COUNTY || 'N/A';
+              const state = properties.state || properties.STATE || 'N/A';
+              
+              popupRef.current = new mapboxgl.Popup()
+                .setLngLat([coordinates.lng, coordinates.lat])
+                .setHTML(`
+                  <div class="font-sans p-1">
+                    <h4 class="font-bold text-sm">Your Location</h4>
+                    <p class="text-xs">Census Tract ${tractId}</p>
+                    <p class="text-xs">Household Income: ${householdIncome}</p>
+                    <p class="text-xs">County: ${county}</p>
+                    <p class="text-xs">State: ${state}</p>
+                  </div>
+                `)
+                .addTo(map.current);
+            }
+          } else {
+            console.log('No census tract found at coordinates');
+          }
+        });
+      } catch (error) {
+        console.error('Error processing address:', error);
+      }
+    };
+    
+    zoomToAddress();
+  }, [address, mapStyleLoaded]);
 
   return (
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
@@ -457,9 +669,9 @@ const OpportunityMap: React.FC = () => {
           <div className="p-4 border-t">
             {/* Map Legend - Only visible when census tracts view is active */}
             {mapView === 'census' && (
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-semibold mb-2">Household Income at Age 35</h4>
-                <div className="flex h-4 w-full">
+              <div className="mb-2 p-2 bg-gray-50 rounded-lg w-3/4 mx-auto">
+                <h4 className="text-xs font-semibold mb-1">Household Income at Age 35</h4>
+                <div className="flex h-3 w-full">
                   <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
                   <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
                   <div className="h-full" style={{ backgroundColor: '#d07e59', width: '9.1%' }}></div>
@@ -472,7 +684,7 @@ const OpportunityMap: React.FC = () => {
                   <div className="h-full" style={{ backgroundColor: '#4f7f8b', width: '9.1%' }}></div>
                   <div className="h-full" style={{ backgroundColor: '#34687e', width: '9.1%' }}></div>
                 </div>
-                <div className="flex justify-between text-xs mt-1">
+                <div className="flex justify-between text-[10px] mt-1">
                   <span>&lt;$10k</span>
                   <span>25k</span>
                   <span>28k</span>
@@ -485,33 +697,9 @@ const OpportunityMap: React.FC = () => {
                   <span>45k</span>
                   <span>&gt;$60k</span>
                 </div>
-                <div className="text-xs text-center mt-2 text-gray-500">
-                  Average household income at age 35 for children with parents at the 25th percentile
-                </div>
               </div>
             )}
-            <div className="flex justify-center space-x-4">
-              <button 
-                onClick={() => setMapView('commuting')}
-                className={`px-4 py-2 rounded-full ${
-                  mapView === 'commuting' 
-                    ? 'bg-primary text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Commuting Zones
-              </button>
-              <button 
-                onClick={() => setMapView('census')}
-                className={`px-4 py-2 rounded-full ${
-                  mapView === 'census' 
-                    ? 'bg-primary text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Census Tracts
-              </button>
-            </div>
+            {/* Buttons removed as requested */}
           </div>
         </div>
 

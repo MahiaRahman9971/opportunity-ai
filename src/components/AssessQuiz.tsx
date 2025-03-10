@@ -71,7 +71,7 @@ export const usePersonalization = useAssessment;
 export { AssessProvider as PersonalizationProvider };
 
 const AssessYourCommunity = () => {
-  const { setFullData } = useAssessment();
+  const { setFullData, data } = useAssessment();
   
   // Initialize formData with ALL fields, including address
   const [formData, setFormData] = useState<AssessData>({
@@ -378,4 +378,18 @@ const AssessYourCommunity = () => {
   );
 };
 
-export default AssessYourCommunity;
+// Import OpportunityMap component
+import OpportunityMap from './OpportunityMap';
+
+const AssessPage = () => {
+  const { data } = useAssessment();
+  
+  return (
+    <div>
+      <AssessYourCommunity />
+      <OpportunityMap address={data.address} />
+    </div>
+  );
+};
+
+export default AssessPage;

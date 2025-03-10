@@ -58,7 +58,6 @@ function Home() {
         <PersonalizationProvider>
           <Welcome />
           <PersonalizationQuiz />
-          <OpportunityMap />
           <Learn />
           <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
           <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
