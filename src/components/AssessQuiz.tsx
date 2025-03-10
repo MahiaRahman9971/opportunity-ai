@@ -378,18 +378,4 @@ const AssessYourCommunity = () => {
   );
 };
 
-// Import OpportunityMap component
-import OpportunityMap from './OpportunityMap';
-
-const AssessPage = () => {
-  const { data } = useAssessment();
-  
-  return (
-    <div>
-      <AssessYourCommunity />
-      <OpportunityMap address={data.address} />
-    </div>
-  );
-};
-
-export default AssessPage;
+export default AssessYourCommunity;

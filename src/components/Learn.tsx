@@ -1,10 +1,22 @@
 'use client'
 
 import { usePersonalization } from './AssessQuiz';
+import { useState, useEffect } from 'react';
+
+// We'll use the opportunity score from the context instead of calculating it here
 
 const Learn = () => {
   // Get opportunity score from context
   const { data } = usePersonalization();
+  const [opportunityScore, setOpportunityScore] = useState<number | null>(null);
+  
+  // Use the opportunity score from the context
+  useEffect(() => {
+    // If we have an opportunity score from the map, use it
+    if (data.opportunityScore !== undefined && data.opportunityScore !== null) {
+      setOpportunityScore(data.opportunityScore);
+    }
+  }, [data.opportunityScore]);
   return (
     <section id="learn" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-12">
@@ -16,14 +28,17 @@ const Learn = () => {
         {/* Community Score */}
         <div className="flex flex-col items-center justify-center mb-12">
           <h3 className="text-xl font-semibold mb-6">Your Opportunity Score</h3>
-          <div className="w-40 h-40 rounded-full bg-[#6CD9CA] text-white flex items-center justify-center mb-8 shadow-lg">
+          <div className="w-40 h-40 rounded-full bg-[#6CD9CA] text-white flex items-center justify-center mb-4 shadow-lg">
             <span className="text-5xl font-bold">
-              {data.opportunityScore !== null && data.opportunityScore !== undefined 
-                ? Math.round(data.opportunityScore / 10)
+              {opportunityScore !== null 
+                ? opportunityScore
                 : '--'}
               <span className="text-2xl">/10</span>
             </span>
           </div>
+          <p className="text-sm text-gray-600 max-w-md text-center mb-8">
+            Based on household income at age 35. Higher scores indicate better economic mobility and opportunity.
+          </p>
         </div>
 
         <div className="text-center mb-10">

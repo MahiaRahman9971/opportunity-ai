@@ -4,15 +4,38 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { geocodeAddress, findCensusTract, highlightCensusTract } from '../utils/geocodingUtils';
+import { usePersonalization } from './AssessQuiz';
+
+// Helper function to calculate opportunity score based on household income
+const calculateOpportunityScore = (income: number): number => {
+  // Convert income to a score from 1-10
+  // $10k or less = 1, $60k or more = 10
+  return Math.min(10, Math.max(1, Math.round((income - 10000) / 5000)));
+};
+
+// Helper function to get color for opportunity score
+const getOpportunityScoreColor = (score: number): string => {
+  // Always return the specified color #6CD9CA
+  return '#6CD9CA';
+};
 
 // Set Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFoaWFyIiwiYSI6ImNtNDY1YnlwdDB2Z2IybHEwd2w3MHJvb3cifQ.wJqnzFFTwLFwYhiPG3SWJA';
 
 interface OpportunityMapProps {
   address?: string;
+  isVisible?: boolean; // New prop to control visibility
 }
 
-const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
+const OpportunityMap: React.FC<OpportunityMapProps> = ({ address, isVisible = true }) => {
+  // If component is not visible, return null early
+  if (!isVisible) {
+    return null;
+  }
+  
+  // Get the personalization context to share opportunity score
+  const { updateData } = usePersonalization();
+  
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapView, setMapView] = useState<'commuting' | 'census'>('census'); // Always using census view now
@@ -77,8 +100,6 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
     };
   }, []);
 
-  // Note: Map sources are added in the map.on('load') callback
-
   // Function to add map layers with the correct source layer
   const addMapLayers = (sourceLayer: string) => {
     if (!map.current) return;
@@ -99,7 +120,6 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
           'fill-color': [
             'interpolate',
             ['linear'],
-            // First try with exact property name from image 2
             ['coalesce', 
               ['get', 'Household_Income_at_Age_35_rP_gP_p25'], 
               ['get', 'household_income_at_age_35_rp_gp_p25'],
@@ -118,13 +138,12 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             45000, '#4f7f8b',  // 45k - accent10 (blue)
             60000, '#34687e'   // >$60k - accent11 (dark blue)
           ],
-          'fill-opacity': 0.8, // Less transparent to match second image
+          'fill-opacity': 0.8,
           'fill-outline-color': '#000000'
         }
-      }, 'poi-label'); // Place below POI labels
+      }, 'poi-label');
       
-      // Now add street layers on top of the census tracts
-      // Add a background layer for streets (creates a white outline effect)
+      // Add background layer for streets
       map.current.addLayer({
         id: 'streets-background',
         type: 'line',
@@ -141,17 +160,17 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.25,  // At zoom level 8, street outlines are extremely thin
-            10, 0.4, // At zoom level 10, street outlines are very thin
-            12, 0.6, // At zoom level 12, street outlines are thin
-            15, 0.8, // At zoom level 15, street outlines are medium-thin
-            20, 1.2  // At zoom level 20, street outlines are thinner than before
+            8, 0.25,
+            10, 0.4,
+            12, 0.6,
+            15, 0.8,
+            20, 1.2
           ],
           'line-opacity': 0.8
         }
-      }); // No need to specify a layer to insert before, it will go on top
+      });
       
-      // Add regular street layer on top of the background
+      // Add regular street layer
       map.current.addLayer({
         id: 'streets-layer',
         type: 'line',
@@ -163,22 +182,22 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
           'visibility': 'visible'
         },
         paint: {
-          'line-color': '#f7f7f7', // Slightly off-white for the inner part
+          'line-color': '#f7f7f7',
           'line-width': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.25, // At zoom level 8, streets are extremely thin
-            10, 0.5, // At zoom level 10, streets are very thin
-            12, 0.75, // At zoom level 12, streets are thin
-            15, 1,   // At zoom level 15, streets are medium
-            20, 1.5  // At zoom level 20, streets are slightly thicker
+            8, 0.25,
+            10, 0.5,
+            12, 0.75,
+            15, 1,
+            20, 1.5
           ],
           'line-opacity': 0.7
         }
-      }); // No need to specify a layer to insert before, it will go on top
+      });
       
-      // Add a background layer for major roads (creates a white outline effect)
+      // Add major streets background
       map.current.addLayer({
         id: 'major-streets-background',
         type: 'line',
@@ -196,17 +215,17 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.4, // At zoom level 8, major street outlines are very thin
-            10, 0.6, // At zoom level 10, major street outlines are thin
-            12, 0.8, // At zoom level 12, major street outlines are medium-thin
-            15, 1.2, // At zoom level 15, major street outlines are medium
-            20, 1.8  // At zoom level 20, major street outlines are thinner than before
+            8, 0.4,
+            10, 0.6,
+            12, 0.8,
+            15, 1.2,
+            20, 1.8
           ],
           'line-opacity': 0.9
         }
-      }); // No need to specify a layer to insert before, it will go on top
+      });
       
-      // Add major streets layer on top of everything
+      // Add major streets layer
       map.current.addLayer({
         id: 'major-streets-layer',
         type: 'line',
@@ -219,22 +238,22 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
           'visibility': 'visible'
         },
         paint: {
-          'line-color': '#f0f0f0', // Slightly off-white for the inner part
+          'line-color': '#f0f0f0',
           'line-width': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.5,  // At zoom level 8, major streets are thin
-            10, 0.75, // At zoom level 10, major streets are thin
-            12, 1,   // At zoom level 12, major streets are medium
-            15, 1.5, // At zoom level 15, major streets are thicker
-            20, 2.5  // At zoom level 20, major streets are thick but still subtle
+            8, 0.5,
+            10, 0.75,
+            12, 1,
+            15, 1.5,
+            20, 2.5
           ],
           'line-opacity': 0.8
         }
-      }); // No need to specify a layer to insert before, it will go on top
+      });
       
-      // Add an outline layer to make census tract boundaries more visible
+      // Census tract outline
       map.current.addLayer({
         id: 'census-tracts-outline',
         type: 'line',
@@ -249,7 +268,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
         }
       });
 
-      // Add a hover layer with thicker lines to highlight selected tracts
+      // Hover layer
       map.current.addLayer({
         id: 'census-tracts-hover',
         type: 'line',
@@ -263,10 +282,10 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
           'line-width': 3,
           'line-opacity': 0.9
         },
-        filter: ['==', 'GEOID', ''] // Default empty filter
+        filter: ['==', 'GEOID', '']
       });
       
-      // Add a custom source for the user's location
+      // User location source
       map.current.addSource('user-location-source', {
         type: 'geojson',
         data: {
@@ -279,7 +298,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
         }
       });
       
-      // Add a symbol layer with a large black dot for the user's location
+      // User location symbol
       map.current.addLayer({
         id: 'user-location-symbol',
         type: 'circle',
@@ -295,7 +314,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
         }
       });
       
-      // Add a custom source for the user's tract outline
+      // User tract source
       map.current.addSource('user-tract-source', {
         type: 'geojson',
         data: {
@@ -308,7 +327,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
         }
       });
       
-      // Add a thick black outline layer for the user's tract (slightly less thick)
+      // User tract outline
       map.current.addLayer({
         id: 'user-tract-outline',
         type: 'line',
@@ -322,17 +341,15 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 3,   // At zoom level 8, width is 3px
-            10, 5,  // At zoom level 10, width is 5px
-            12, 8,  // At zoom level 12, width is 8px
-            14, 12   // At zoom level 14, width is 12px
+            8, 3,
+            10, 5,
+            12, 8,
+            14, 12
           ]
         }
       });
       
-      // Remove the white inner outline
-      
-      // Log available properties in the first feature to help debug
+      // Log feature properties if available
       try {
         const features = map.current.querySourceFeatures('ct-opportunity-data', {
           sourceLayer: sourceLayer,
@@ -349,7 +366,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
         console.log('Could not query source features:', err);
       }
       
-      // Add event handlers for the layers
+      // Add event handlers
       addEventHandlers();
       
       console.log('Successfully added layers with source layer:', sourceLayer);
@@ -399,9 +416,18 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
         
         // Format household income
         let householdIncome = 'N/A';
+        let opportunityScore = 'N/A';
         if (properties.Household_Income_at_Age_35_rP_gP_p25) {
           const income = properties.Household_Income_at_Age_35_rP_gP_p25;
           householdIncome = '$' + Math.round(income).toLocaleString();
+          opportunityScore = calculateOpportunityScore(income).toString();
+          
+          // Share the opportunity score with other components through context
+          // This ensures the Learn component gets updated when a new tract is clicked
+          updateData({
+            opportunityScore: parseInt(opportunityScore),
+            income: income.toString()
+          });
         }
         
         const county = properties.county || properties.COUNTY || 'N/A';
@@ -417,7 +443,9 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
           .setHTML(`
             <div class="font-sans p-1">
               <h4 class="font-bold text-sm">Census Tract ${geoid}</h4>
-              <p class="text-xs">Household Income: ${householdIncome}</p>
+              <p class="text-xs">
+                Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
+              </p>
               <p class="text-xs">County: ${county}</p>
               <p class="text-xs">State: ${state}</p>
             </div>
@@ -482,8 +510,6 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
           mapView === 'census' ? 'visible' : 'none'
         );
       }
-      
-      // No inner outline layer anymore
       
       // Make streets more visible when in census view
       if (map.current.getLayer('streets-layer')) {
@@ -619,9 +645,18 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
               
               // Format household income
               let householdIncome = 'N/A';
+              let opportunityScore = 'N/A';
               if (properties.Household_Income_at_Age_35_rP_gP_p25) {
                 const income = properties.Household_Income_at_Age_35_rP_gP_p25;
                 householdIncome = '$' + Math.round(income).toLocaleString();
+                opportunityScore = calculateOpportunityScore(income).toString();
+                
+                // Share the opportunity score with other components through context
+                updateData({
+                  opportunityScore: parseInt(opportunityScore),
+                  // Also store the income for reference
+                  income: income.toString()
+                });
               }
               
               const county = properties.county || properties.COUNTY || 'N/A';
@@ -633,6 +668,9 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
                   <div class="font-sans p-1">
                     <h4 class="font-bold text-sm">Your Location</h4>
                     <p class="text-xs">Census Tract ${tractId}</p>
+                    <p class="text-xs">
+                      Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
+                    </p>
                     <p class="text-xs">Household Income: ${householdIncome}</p>
                     <p class="text-xs">County: ${county}</p>
                     <p class="text-xs">State: ${state}</p>
@@ -670,7 +708,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
             {/* Map Legend - Only visible when census tracts view is active */}
             {mapView === 'census' && (
               <div className="mb-2 p-2 bg-gray-50 rounded-lg w-3/4 mx-auto">
-                <h4 className="text-xs font-semibold mb-1">Household Income at Age 35</h4>
+                <h4 className="text-xs font-semibold mb-1">Opportunity Score (1-10)</h4>
                 <div className="flex h-3 w-full">
                   <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
                   <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
@@ -685,46 +723,61 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
                   <div className="h-full" style={{ backgroundColor: '#34687e', width: '9.1%' }}></div>
                 </div>
                 <div className="flex justify-between text-[10px] mt-1">
-                  <span>&lt;$10k</span>
-                  <span>25k</span>
-                  <span>28k</span>
-                  <span>30k</span>
-                  <span>32k</span>
-                  <span>34k</span>
-                  <span>36k</span>
-                  <span>38k</span>
-                  <span>41k</span>
-                  <span>45k</span>
-                  <span>&gt;$60k</span>
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>6</span>
+                  <span>7</span>
+                  <span>8</span>
+                  <span>9</span>
+                  <span>10</span>
+                  <span>10+</span>
+                </div>
+                <div className="text-[9px] text-gray-500 mt-1 text-center">
+                  Based on household income at age 35
                 </div>
               </div>
             )}
-            {/* Buttons removed as requested */}
           </div>
         </div>
 
         {/* Opportunity Scores */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-2xl font-semibold mb-4">Household Income</h3>
+          <h3 className="text-2xl font-semibold mb-4">Opportunity Score</h3>
           <div className="text-center mb-6">
-            <span className="text-5xl font-bold text-primary">
+            {selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 ? (
+              <>
+                <span 
+                  className="text-5xl font-bold" 
+                  style={{ 
+                    color: getOpportunityScoreColor(calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)) 
+                  }}
+                >
+                  {calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)}
+                </span>
+                <span className="text-lg ml-2 text-gray-500">out of 10</span>
+              </>
+            ) : (
+              <>
+                <span className="text-5xl font-bold text-gray-400">--</span>
+                <span className="text-lg ml-2 text-gray-500">out of 10</span>
+              </>
+            )}
+          </div>
+          <div className="text-center mb-4">
+            <span className="text-lg text-gray-700">
               {selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 
                 ? '$' + Math.round(selectedTract.Household_Income_at_Age_35_rP_gP_p25).toLocaleString() 
                 : '--'}
             </span>
-            <span className="text-lg ml-2 text-gray-500">income</span>
+            <span className="text-sm ml-1 text-gray-500">household income</span>
           </div>
 
-          {selectedTract ? (
-            <div className="text-sm text-gray-600 mb-4">
-              <p><span className="font-semibold">Census Tract:</span> {selectedTract.GEOID || selectedTract.GEO_ID || 'N/A'}</p>
-              <p><span className="font-semibold">County:</span> {selectedTract.county || selectedTract.COUNTY || 'N/A'}</p>
-              <p><span className="font-semibold">State:</span> {selectedTract.state || selectedTract.STATE || 'N/A'}</p>
-              <p className="mt-2 text-xs">Click on the map to view data for different areas</p>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-600 mb-4">Click on a census tract to view detailed information</p>
-          )}
+          <p className="text-sm text-gray-600 mb-4 text-center">
+            {selectedTract ? 'Click on the map to view data for different areas' : 'Click on a census tract to view detailed information'}
+          </p>
 
           <div className="space-y-4">
             {[

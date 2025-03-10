@@ -3,7 +3,7 @@ import { RefObject, useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Welcome from '../components/Welcome'
 import Learn from '../components/Learn'
-import PersonalizationQuiz from '../components/AssessQuiz'
+import PersonalizationQuiz, { usePersonalization } from '../components/AssessQuiz'
 import OpportunityMap from '../components/OpportunityMap'
 import TakeAction from '@/components/action-plan/ActionPlan'
 import NextSteps from '../components/NextSteps'
@@ -56,15 +56,40 @@ function Home() {
       
       <main className="container">
         <PersonalizationProvider>
-          <Welcome />
-          <PersonalizationQuiz />
-          <Learn />
-          <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
-          <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
+          <HomeContent 
+            selectedAction={selectedAction} 
+            savedChoices={savedChoices}
+            handleActionAndChoicesSave={handleActionAndChoicesSave}
+          />
         </PersonalizationProvider>
       </main>
     </>
   )
+}
+
+// This component allows us to access the personalization context
+function HomeContent({ 
+  selectedAction, 
+  savedChoices,
+  handleActionAndChoicesSave
+}: { 
+  selectedAction: 'stay' | 'move' | null;
+  savedChoices: SavedChoices | null;
+  handleActionAndChoicesSave: (action: 'stay' | 'move', choices: SavedChoices) => void;
+}) {
+  // Now we can use the personalization context
+  const { data } = usePersonalization();
+  
+  return (
+    <>
+      <Welcome />
+      <PersonalizationQuiz />
+      <OpportunityMap address={data.address} />
+      <Learn />
+      <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
+      <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
+    </>
+  );
 }
 
 export default Home
