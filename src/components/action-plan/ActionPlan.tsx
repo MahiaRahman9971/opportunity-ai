@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import Stay from './Stay'
 import Move from './Move'
+import { useAssessment } from '../AssessQuiz'
 
 interface SavedChoices {
   town: string;
@@ -18,6 +19,9 @@ interface TakeActionProps {
 const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
   const [selectedAction, setSelectedAction] = useState<'stay' | 'move' | null>(null)
   const [savedChoices, setSavedChoices] = useState<SavedChoices | null>(null)
+  
+  // Get assessment data from context
+  const { data: assessmentData } = useAssessment()
   
   const handleActionSelect = (action: 'stay' | 'move') => {
     setSelectedAction(action)
@@ -122,10 +126,10 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
         </div>
         {/* Action Details Section (conditionally rendered) */}
         {selectedAction === 'stay' && (
-          <Stay onSaveChoices={handleSaveChoices} />
+          <Stay onSaveChoices={handleSaveChoices} assessmentData={assessmentData} />
         )}
         {selectedAction === 'move' && (
-          <Move onSaveChoices={handleSaveChoices} />
+          <Move onSaveChoices={handleSaveChoices} assessmentData={assessmentData} />
         )}
         {/* Saved Choices Summary */}
         {savedChoices && (
