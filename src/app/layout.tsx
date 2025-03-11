@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Nunito } from 'next/font/google'
 import './globals.css'
+import ChatWidget from '@/components/ChatWidget'
 
 // Initialize the Nunito font
 const nunito = Nunito({ 
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${nunito.variable} font-nunito`}>
         {children}
+        <ChatWidget />
       </body>
     </html>
   )

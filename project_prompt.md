@@ -32,7 +32,6 @@ I'm developing a web application called "Opportunity AI" that helps families ass
    - School selection, community program suggestions, and housing recommendations
 
 5. **Data Integration**:
-   - Census tract data from AWS S3
    - GeoJSON mapping data
    - Client and server-side caching for performance optimization
 
@@ -43,6 +42,4 @@ The application currently has these main components:
 - `NeighborhoodInsights.tsx`: Detailed neighborhood metrics
 - `ActionPlan.tsx`, `Stay.tsx`, `Move.tsx`: Personalized action planning components
 
-## Current Challenges
-I have hard coded the data in the `Stay` component and moved 'move' component. Can you help me change this so that it is actually functional? this part should get the address from the assess quiz section and then find data based on it. i don't know how to get the data or the best way to do it. I was thinking of using the open ai api to do get the data based on the address. is this the best way? what are your thoughts? I will provide you with the code once your ready. 
 
