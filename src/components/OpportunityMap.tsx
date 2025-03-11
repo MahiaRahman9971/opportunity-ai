@@ -29,10 +29,14 @@ interface TractData {
 
 interface OpportunityMapProps {
   address?: string;
-  isVisible?: boolean; // New prop to control visibility
+  isVisible?: boolean; // Prop to control visibility
+  showWrapper?: boolean; // New prop to control whether to show the surrounding UI elements
 }
 
-const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
+const OpportunityMap: React.FC<OpportunityMapProps> = ({ 
+  address, 
+  showWrapper = true 
+}) => {
   // Get the personalization context to share opportunity score
   const { updateData } = usePersonalization();
   
@@ -703,6 +707,17 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
     zoomToAddress();
   }, [address, mapStyleLoaded]);
 
+  // Render only the map container if showWrapper is false
+  if (!showWrapper) {
+    return (
+      <div 
+        ref={mapContainer} 
+        className="h-full w-full"
+      />
+    );
+  }
+
+  // Otherwise, render the full component with surrounding UI
   return (
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
       <div className="text-center mb-10">
@@ -802,6 +817,11 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({ address }) => {
       </div>
     </section>
   );
+};
+
+// Export a separate MapOnly component that just renders the map part
+export const MapOnly = (props: OpportunityMapProps) => {
+  return <OpportunityMap {...props} showWrapper={false} />;
 };
 
 export default OpportunityMap;

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { School, Home } from 'lucide-react'
 import { useAssessment, AssessData } from '../AssessQuiz'
+import { MapOnly } from '../OpportunityMap'
 
 // Define types for the recommendations data
 type TownData = {
@@ -170,49 +171,60 @@ interface MoveProps {
 }
 
 const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
-  const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
-  const [selectedCommunityPrograms, setSelectedCommunityPrograms] = useState<string[]>([])
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null)
-  const [selectedHousingType, setSelectedHousingType] = useState<string | null>(null)
-  const [zipCode, setZipCode] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [recommendations, setRecommendations] = useState<MoveRecommendations>(defaultRecommendations)
+  const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+  const [selectedCommunityPrograms, setSelectedCommunityPrograms] = useState<string[]>([]);
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null);
+  const [selectedHousingType, setSelectedHousingType] = useState<string | null>(null);
+  const [zipCode, setZipCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<MoveRecommendations>(defaultRecommendations);
+  const [mapAddress, setMapAddress] = useState<string>('');
+  const [shouldFetchData, setShouldFetchData] = useState(false);
   
   // Get assessment data from context if not provided as prop
-  const assessmentContext = useAssessment()
-  const contextData = assessmentContext?.data
+  const assessmentContext = useAssessment();
+  const contextData = assessmentContext?.data;
 
   const handleSchoolSelect = (schoolName: string) => {
-    setSelectedSchool(schoolName)
-  }
+    setSelectedSchool(schoolName);
+  };
 
   const handleCommunityProgramToggle = (programName: string) => {
     setSelectedCommunityPrograms(prev => 
       prev.includes(programName)
         ? prev.filter(p => p !== programName)
         : [...prev, programName]
-    )
-  }
+    );
+  };
 
   const handleNeighborhoodSelect = (neighborhoodName: string) => {
-    setSelectedNeighborhood(neighborhoodName)
-  }
+    setSelectedNeighborhood(neighborhoodName);
+    
+    // Update map address when neighborhood is selected
+    if (zipCode) {
+      setMapAddress(`${neighborhoodName}, ${zipCode}`);
+    }
+  };
 
   const handleHousingTypeSelect = (housingType: string) => {
-    setSelectedHousingType(housingType)
-  }
+    setSelectedHousingType(housingType);
+  };
 
   const handleZipCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setZipCode(e.target.value)
-  }
+    setZipCode(e.target.value);
+    // Set flag to fetch data when zipCode changes and length is at least 5
+    if (e.target.value.length >= 5) {
+      setShouldFetchData(true);
+    }
+  };
   
   // Fallback data in case the API call fails
   const fallbackRecommendations = defaultRecommendations;
 
   // Fetch personalized recommendations from OpenAI API
   const fetchRecommendations = useCallback(async () => {
-    if (!zipCode) return;
+    if (!zipCode || zipCode.length < 5) return;
     
     setLoading(true);
     setError(null);
@@ -222,6 +234,9 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       const address = data.address || '';
       const income = data.income || '<25k';
       const children = data.children || [];
+      
+      // Update map address when zip code changes
+      setMapAddress(zipCode);
       
       const response = await fetch('/api/openai-move', {
         method: 'POST',
@@ -274,15 +289,17 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       setRecommendations(fallbackRecommendations);
     } finally {
       setLoading(false);
+      // Reset the flag after fetching
+      setShouldFetchData(false);
     }
   }, [zipCode, assessmentData, contextData, fallbackRecommendations]);
   
-  // Trigger the API call when zipCode changes
+  // Trigger the API call when shouldFetchData is true
   useEffect(() => {
-    if (zipCode && zipCode.length >= 5) {
+    if (shouldFetchData) {
       fetchRecommendations();
     }
-  }, [zipCode, fetchRecommendations]);
+  }, [shouldFetchData, fetchRecommendations]);
 
   const handleSaveChoices = () => {
     if (onSaveChoices && selectedSchool && selectedCommunityPrograms.length > 0) {
@@ -292,10 +309,10 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
         selectedCommunityPrograms,
         selectedNeighborhood: selectedNeighborhood || undefined,
         selectedHousingType: selectedHousingType || undefined
-      }
-      onSaveChoices(choices)
+      };
+      onSaveChoices(choices);
     }
-  }
+  };
 
   const hasRequiredSelections = 
     selectedSchool && 
@@ -348,7 +365,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           </div>
           {zipCode && !loading && (
             <button 
-              onClick={fetchRecommendations}
+              onClick={() => setShouldFetchData(true)}
               className="ml-2 bg-[#6CD9CA] hover:bg-opacity-90 text-white py-2 px-4 rounded-md text-sm transition-colors"
             >
               Update
@@ -380,7 +397,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               <p className="text-red-600 mb-4">{error}</p>
               <p className="mb-4">We&apos;re showing you our default recommendations instead.</p>
               <button 
-                onClick={fetchRecommendations}
+                onClick={() => setShouldFetchData(true)}
                 className="bg-[#6CD9CA] hover:bg-opacity-90 text-white py-2 px-4 rounded-md text-sm transition-colors"
               >
                 Try Again
@@ -408,49 +425,71 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                     (Click to learn more about local opportunities!)
                   </span>
                 </p>
-              <p><strong>Description:</strong> {recommendations.townData.description}</p>
-            </div>
+                <p><strong>Description:</strong> {recommendations.townData.description}</p>
+              </div>
             </div>
           )}
 
-          {/* Opportunity Map & Top Neighborhoods - UPDATED WITH SELECTION */}
+          {/* Opportunity Map & Top Neighborhoods */}
           {!loading && (
             <div className="bg-white shadow-md rounded-lg p-6">
-              <div className="flex flex-col lg:flex-row">
-                <div className="w-full lg:w-1/2 pr-0 lg:pr-4 mb-6 lg:mb-0">
-                  <p className="text-gray-500 text-center py-20">Opportunity Map Coming Soon</p>
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Opportunity Map - Takes up left half on desktop */}
+                <div className="w-full lg:w-1/2">
+                  <h3 className="text-2xl font-semibold mb-4">Opportunity Map</h3>
+                  <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200">
+                    {mapAddress ? (
+                      <div className="w-full h-full">
+                        <MapOnly 
+                          address={mapAddress}
+                          isVisible={true}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-gray-50">
+                        <p className="text-gray-500">Enter a ZIP code to see the opportunity map</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="w-full lg:w-1/2 pl-0 lg:pl-4">
+                
+                {/* Neighborhoods List - Takes up right half on desktop */}
+                <div className="w-full lg:w-1/2">
                   <h3 className="text-2xl font-semibold mb-4">Top Neighborhoods in {zipCode}</h3>
                   <p className="mb-4">Select a neighborhood you&apos;re interested in:</p>
                   
-                  {neighborhoods.map((neighborhood) => (
-                  <div 
-                    key={neighborhood.name} 
-                    className={`
-                      border rounded-lg p-4 mb-4 cursor-pointer transition-all duration-300
-                      ${selectedNeighborhood === neighborhood.name 
-                        ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
-                        : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
-                    `}
-                    onClick={() => handleNeighborhoodSelect(neighborhood.name)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-xl font-semibold">{neighborhood.name}</h4>
-                      <span className="text-sm text-gray-600">Score: {neighborhood.score}/10</span>
-                    </div>
-                    <p className="text-gray-700 mt-2">{neighborhood.description}</p>
+                  <div className="space-y-4">
+                    {neighborhoods.map((neighborhood) => (
+                      <div 
+                        key={neighborhood.name} 
+                        className={`
+                          border rounded-lg p-4 cursor-pointer transition-all duration-300
+                          ${selectedNeighborhood === neighborhood.name 
+                            ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
+                            : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
+                        `}
+                        onClick={() => handleNeighborhoodSelect(neighborhood.name)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-xl font-semibold">{neighborhood.name}</h4>
+                          <div className="flex items-center">
+                            <span className="text-sm mr-2">Opportunity Score:</span>
+                            <span className="bg-[#6CD9CA] text-white font-bold px-2 py-1 rounded-md">{neighborhood.score}/10</span>
+                          </div>
+                        </div>
+                        <p className="text-gray-700 mt-2">{neighborhood.description}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
 
-                {selectedNeighborhood && (
-                  <p className="mt-4 text-lg font-semibold">
-                    {selectedNeighborhood} looks like a great neighborhood for your family!
-                  </p>
-                )}
+                  {selectedNeighborhood && (
+                    <p className="mt-4 text-lg font-semibold">
+                      {selectedNeighborhood} looks like a great neighborhood for your family!
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           {/* Local Schools */}
@@ -461,44 +500,44 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               
               <div className="space-y-4">
                 {recommendations.schoolData.map((school) => (
-                <div 
-                  key={school.name}
-                  className={`
-                    border rounded-lg p-4 cursor-pointer transition-all duration-300 flex items-center
-                    ${selectedSchool === school.name 
-                      ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
-                      : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
-                  `}
-                  onClick={() => handleSchoolSelect(school.name)}
-                >
-                  <School className="mr-4 text-[#6CD9CA]" size={24} />
-                  <div className="flex-grow flex justify-between items-center">
-                    <div className="flex-grow">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xl font-semibold">{school.name}</h4>
-                        <p className="text-sm text-gray-600 ml-4">Rating: {school.rating}/10</p>
+                  <div 
+                    key={school.name}
+                    className={`
+                      border rounded-lg p-4 cursor-pointer transition-all duration-300 flex items-center
+                      ${selectedSchool === school.name 
+                        ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
+                        : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
+                    `}
+                    onClick={() => handleSchoolSelect(school.name)}
+                  >
+                    <School className="mr-4 text-[#6CD9CA]" size={24} />
+                    <div className="flex-grow flex justify-between items-center">
+                      <div className="flex-grow">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xl font-semibold">{school.name}</h4>
+                          <p className="text-sm text-gray-600 ml-4">Rating: {school.rating}/10</p>
+                        </div>
+                        <p className="mt-1">{school.description}</p>
                       </div>
-                      <p className="mt-1">{school.description}</p>
+                      <a 
+                        href={school.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-[#6CD9CA] hover:underline ml-4"
+                      >
+                        Website
+                      </a>
                     </div>
-                    <a 
-                      href={school.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-[#6CD9CA] hover:underline ml-4"
-                    >
-                      Website
-                    </a>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {selectedSchool && (
-              <p className="mt-4 text-lg font-semibold">
-                {selectedSchool} school looks like a great option for your child!
-              </p>
-            )}
-          </div>
+              {selectedSchool && (
+                <p className="mt-4 text-lg font-semibold">
+                  {selectedSchool} school looks like a great option for your child!
+                </p>
+              )}
+            </div>
           )}
 
           {/* Community Programs */}
@@ -509,40 +548,40 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               
               <div className="space-y-4">
                 {recommendations.communityProgramData.map((program) => (
-                <div 
-                  key={program.name}
-                  className={`
-                    border rounded-lg p-4 cursor-pointer transition-all duration-300
-                    ${selectedCommunityPrograms.includes(program.name)
-                      ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
-                      : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
-                  `}
-                  onClick={() => handleCommunityProgramToggle(program.name)}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="text-xl font-semibold">{program.name}</h4>
+                  <div 
+                    key={program.name}
+                    className={`
+                      border rounded-lg p-4 cursor-pointer transition-all duration-300
+                      ${selectedCommunityPrograms.includes(program.name)
+                        ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
+                        : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
+                    `}
+                    onClick={() => handleCommunityProgramToggle(program.name)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="text-xl font-semibold">{program.name}</h4>
+                      </div>
+                      <a 
+                        href={program.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-[#6CD9CA] hover:underline"
+                      >
+                        Website
+                      </a>
                     </div>
-                    <a 
-                      href={program.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-[#6CD9CA] hover:underline"
-                    >
-                      Website
-                    </a>
+                    <p className="mt-2">{program.description}</p>
                   </div>
-                  <p className="mt-2">{program.description}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {selectedCommunityPrograms.length > 0 && (
-              <p className="mt-4 text-lg font-semibold">
-                {selectedCommunityPrograms.join(', ')} {selectedCommunityPrograms.length === 1 ? 'looks' : 'look'} like a great option for your child!
-              </p>
-            )}
-          </div>
+              {selectedCommunityPrograms.length > 0 && (
+                <p className="mt-4 text-lg font-semibold">
+                  {selectedCommunityPrograms.join(', ')} {selectedCommunityPrograms.length === 1 ? 'looks' : 'look'} like a great option for your child!
+                </p>
+              )}
+            </div>
           )}
 
           {/* Community Demographics */}
@@ -571,11 +610,11 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                   <div className="space-y-2">
                     {Array.isArray(recommendations.communityDemographics.ethnicComposition) && 
                       recommendations.communityDemographics.ethnicComposition.map((group) => (
-                      <div key={group.group} className="flex justify-between">
-                        <span>{group.group}</span>
-                        <span>{group.percentage}%</span>
-                      </div>
-                    ))}
+                        <div key={group.group} className="flex justify-between">
+                          <span>{group.group}</span>
+                          <span>{group.percentage}%</span>
+                        </div>
+                      ))}
                   </div>
                 </div>
                 <div>
@@ -583,11 +622,11 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                   <div className="space-y-2">
                     {Array.isArray(recommendations.communityDemographics.educationLevel) && 
                       recommendations.communityDemographics.educationLevel.map((level) => (
-                      <div key={level.level} className="flex justify-between">
-                        <span>{level.level}</span>
-                        <span>{level.percentage}%</span>
-                      </div>
-                    ))}
+                        <div key={level.level} className="flex justify-between">
+                          <span>{level.level}</span>
+                          <span>{level.percentage}%</span>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>
@@ -602,71 +641,71 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 {recommendations.housingOptions.map((option) => (
-                <div 
-                  key={option.type}
-                  className={`
-                    border rounded-lg p-4 cursor-pointer transition-all duration-300
-                    ${selectedHousingType === option.type 
-                      ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
-                      : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
-                  `}
-                  onClick={() => handleHousingTypeSelect(option.type)}
+                  <div 
+                    key={option.type}
+                    className={`
+                      border rounded-lg p-4 cursor-pointer transition-all duration-300
+                      ${selectedHousingType === option.type 
+                        ? 'border-[#6CD9CA] bg-[#6CD9CA] bg-opacity-10' 
+                        : 'border-gray-200 hover:border-[#6CD9CA] hover:bg-[#6CD9CA] hover:bg-opacity-10'}
+                    `}
+                    onClick={() => handleHousingTypeSelect(option.type)}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-xl font-semibold">{option.type}</h4>
+                      <Home className="text-[#6CD9CA]" size={20} />
+                    </div>
+                    <div className="space-y-2 text-gray-700">
+                      <p><strong>Price Range:</strong> {option.priceRange}</p>
+                      <p><strong>Size:</strong> {option.averageSize}</p>
+                      <p>{option.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {selectedHousingType && (
+                <p className="mt-4 mb-6 text-lg font-semibold text-center">
+                  {selectedHousingType} seems like a good fit for your family!
+                </p>
+              )}
+              
+              <h4 className="text-xl font-semibold mb-4 text-center">Find Housing On:</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a 
+                  href="https://www.redfin.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
                 >
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-xl font-semibold">{option.type}</h4>
-                    <Home className="text-[#6CD9CA]" size={20} />
-                  </div>
-                  <div className="space-y-2 text-gray-700">
-                    <p><strong>Price Range:</strong> {option.priceRange}</p>
-                    <p><strong>Size:</strong> {option.averageSize}</p>
-                    <p>{option.description}</p>
-                  </div>
-                </div>
-              ))}
+                  Redfin
+                </a>
+                <a 
+                  href="https://www.zillow.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Zillow
+                </a>
+                <a 
+                  href="https://www.hud.gov/program_offices/comm_planning/affordablehousing" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Affordable Housing
+                </a>
+                <a 
+                  href="https://www.craigslist.org" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Craigslist
+                </a>
+              </div>
             </div>
-            
-            {selectedHousingType && (
-              <p className="mt-4 mb-6 text-lg font-semibold text-center">
-                {selectedHousingType} seems like a good fit for your family!
-              </p>
-            )}
-            
-            <h4 className="text-xl font-semibold mb-4 text-center">Find Housing On:</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <a 
-                href="https://www.redfin.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
-              >
-                Redfin
-              </a>
-              <a 
-                href="https://www.zillow.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
-              >
-                Zillow
-              </a>
-              <a 
-                href="https://www.hud.gov/program_offices/comm_planning/affordablehousing" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
-              >
-                Affordable Housing
-              </a>
-              <a 
-                href="https://www.craigslist.org" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
-              >
-                Craigslist
-              </a>
-            </div>
-          </div>
           )}
           
           {/* Save Choices Button */}
@@ -687,7 +726,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Move
+export default Move;
