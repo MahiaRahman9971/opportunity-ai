@@ -43,21 +43,7 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
     >
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Take Action</h1>
-        <p className="text-xl">Based on your community&apos;s opportunity score, here are some actions you can consider:</p>
-      </div>
-      <div className="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-8">
-        {/* Areas for Improvement */}
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-4">Areas for Improvement</h3>
-          <ul className="space-y-2 text-lg">
-            <li className="bg-[#6CD9CA] bg-opacity-20 px-4 py-2 rounded-md">
-              School Quality
-            </li>
-            <li className="bg-[#6CD9CA] bg-opacity-20 px-4 py-2 rounded-md">
-              Community Programs
-            </li>
-          </ul>
-        </div>
+        <p className="text-xl">Based on your community&apos;s opportunity score, here are some actions you can consider.</p>
       </div>
       <div className="mt-16 text-center">
         <h2 className="text-2xl md:text-3xl font-semibold mb-6">What would you like to do?</h2>

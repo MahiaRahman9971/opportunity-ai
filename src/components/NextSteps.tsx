@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { FaCheckCircle, FaCircle } from 'react-icons/fa'
-import { MdDownload, MdEmail, MdPrint, MdShare } from 'react-icons/md'
+import { MdDownload, MdEmail, MdPrint } from 'react-icons/md'
 
 interface SavedChoices {
   town: string;
@@ -249,55 +249,6 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Additional Resources */}
-        <div className="mt-10 pt-6 border-t border-gray-200">
-          <h3 className="text-xl font-semibold mb-4">Additional Resources</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a 
-              href="#" 
-              className="block p-4 bg-gray-100 rounded-lg hover:bg-primary hover:bg-opacity-10 transition-colors"
-            >
-              Guide to School Transfers and Enrollment
-            </a>
-            <a 
-              href="#" 
-              className="block p-4 bg-gray-100 rounded-lg hover:bg-primary hover:bg-opacity-10 transition-colors"
-            >
-              Finding and Evaluating Community Programs
-            </a>
-            <a 
-              href="#" 
-              className="block p-4 bg-gray-100 rounded-lg hover:bg-primary hover:bg-opacity-10 transition-colors"
-            >
-              {selectedAction === 'stay' 
-                ? 'How to Advocate for Better Schools' 
-                : 'Complete Moving Checklist'
-              }
-            </a>
-            <a 
-              href="#" 
-              className="block p-4 bg-gray-100 rounded-lg hover:bg-primary hover:bg-opacity-10 transition-colors"
-            >
-              {selectedAction === 'stay' 
-                ? 'Building Community Connections' 
-                : 'Helping Children Adjust to a New Community'
-              }
-            </a>
-          </div>
-        </div>
-
-        {/* Social Sharing */}
-        <div className="mt-10 pt-6 border-t border-gray-200">
-          <h3 className="text-xl font-semibold mb-4">Share Your Journey</h3>
-          <p className="mb-4">Help other families by sharing your experience:</p>
-          <div className="flex space-x-4">
-            <button className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-              <MdShare className="mr-2" />
-              Share Your Journey
-            </button>
-          </div>
         </div>
       </div>
     </section>

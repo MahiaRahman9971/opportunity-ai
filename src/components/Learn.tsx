@@ -48,45 +48,6 @@ const Learn = () => {
         <div className="text-center mb-10">
           <p className="max-w-2xl mx-auto">Let&apos;s understand what makes some areas have more opportunities than others:</p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Segregation */}
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h3 className="text-xl font-semibold mb-2">Segregation</h3>
-            <p className="mb-4 text-gray-700">How mixed or separated different communities are</p>
-            <button className="bg-primary hover:bg-opacity-80 text-white py-2 px-4 rounded-full text-sm">Learn More</button>
-          </div>
-
-          {/* Income Inequality */}
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h3 className="text-xl font-semibold mb-2">Income Inequality</h3>
-            <p className="mb-4 text-gray-700">The gap between high and low income families</p>
-            <button className="bg-primary hover:bg-opacity-80 text-white py-2 px-4 rounded-full text-sm">Learn More</button>
-          </div>
-
-          {/* School Quality */}
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h3 className="text-xl font-semibold mb-2">School Quality</h3>
-            <p className="mb-4 text-gray-700">How good the local schools are</p>
-            <button className="bg-primary hover:bg-opacity-80 text-white py-2 px-4 rounded-full text-sm">Learn More</button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {/* Family Structure */}
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h3 className="text-xl font-semibold mb-2">Family Structure</h3>
-            <p className="mb-4 text-gray-700">Support systems within families</p>
-            <button className="bg-primary hover:bg-opacity-80 text-white py-2 px-4 rounded-full text-sm">Learn More</button>
-          </div>
-
-          {/* Social Capital */}
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
-            <h3 className="text-xl font-semibold mb-2">Social Capital</h3>
-            <p className="mb-4 text-gray-700">Community connections and support</p>
-            <button className="bg-primary hover:bg-opacity-80 text-white py-2 px-4 rounded-full text-sm">Learn More</button>
-          </div>
-        </div>
       </div>
 
       {/* How can we do better section */}
