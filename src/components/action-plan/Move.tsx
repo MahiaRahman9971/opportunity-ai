@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { School, Home } from 'lucide-react'
 import { useAssessment, AssessData } from '../AssessQuiz'
 
@@ -207,112 +207,11 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
     setZipCode(e.target.value)
   }
   
-  // Default data for fallback mechanism
-  const defaultTownData = {
-    name: "Arlington",
-    website: "https://www.arlingtonva.us",
-    description: "Arlington County is a vibrant urban community in Northern Virginia with excellent schools, diverse neighborhoods, and abundant parks and recreation facilities."
-  };
-  
-  const defaultNeighborhoods = [
-    { name: "Clarendon", score: 9.2, description: "Vibrant urban neighborhood with excellent amenities" },
-    { name: "Ballston", score: 8.9, description: "Modern urban village with great transit access" },
-    { name: "Shirlington", score: 8.5, description: "Quiet suburban neighborhood with parks" }
-  ];
-  
-  const defaultSchoolData = [
-    {
-      name: "Arlington Elementary",
-      rating: 9.0,
-      description: "A top-rated elementary school with advanced educational programs and strong community involvement.",
-      website: "https://www.arlingtonelementary.edu"
-    },
-    {
-      name: "Riverside Magnet School",
-      rating: 8.5,
-      description: "Innovative magnet school offering specialized STEM and arts programs with small class sizes.",
-      website: "https://www.riversidemagnet.edu"
-    },
-    {
-      name: "Greenwood Community School",
-      rating: 8.3,
-      description: "Community-focused school with comprehensive enrichment programs and strong parent engagement.",
-      website: "https://www.greenwoodschool.edu"
-    }
-  ];
-  
-  const defaultCommunityPrograms = [
-    {
-      name: "Arlington Youth Leadership",
-      description: "Comprehensive youth development program focusing on leadership skills, community service, and personal growth.",
-      website: "https://www.arlingtonyouth.org"
-    },
-    {
-      name: "STEM Innovators Club",
-      description: "Hands-on science and technology program for children of all ages, offering workshops and mentorship.",
-      website: "https://www.steminnovators.org"
-    },
-    {
-      name: "Community Arts Center",
-      description: "Cultural hub offering classes, exhibitions, and performances for all ages and skill levels.",
-      website: "https://www.communityartscenter.org"
-    }
-  ];
-  
-  const defaultCommunityDemographics = {
-    population: 238643,
-    medianAge: 34.2,
-    ethnicComposition: [
-      { group: "White", percentage: 64 },
-      { group: "Hispanic", percentage: 15 },
-      { group: "Asian", percentage: 10 },
-      { group: "Black", percentage: 8 },
-      { group: "Other", percentage: 3 }
-    ],
-    medianHousehold: 120071,
-    educationLevel: [
-      { level: "High School", percentage: 95 },
-      { level: "Bachelor's Degree", percentage: 74 },
-      { level: "Graduate Degree", percentage: 38 },
-      { level: "Professional Degree", percentage: 5 }
-    ]
-  };
-  
-  const defaultHousingOptions = [
-    {
-      type: "Single-Family Home",
-      priceRange: "$750,000 - $1,500,000",
-      averageSize: "2,000 - 3,500 sq ft",
-      description: "Spacious detached homes with yards, ideal for families with children."
-    },
-    {
-      type: "Townhouse",
-      priceRange: "$550,000 - $850,000",
-      averageSize: "1,500 - 2,200 sq ft",
-      description: "Multi-level attached homes with modern amenities and small outdoor spaces."
-    },
-    {
-      type: "Condo/Apartment",
-      priceRange: "$350,000 - $700,000",
-      averageSize: "700 - 1,500 sq ft",
-      description: "Low-maintenance living with building amenities like gyms and rooftop spaces."
-    }
-  ];
-  
   // Fallback data in case the API call fails
-  const fallbackRecommendations = {
-    townData: defaultTownData,
-    neighborhoodData: {
-      topNeighborhoods: defaultNeighborhoods
-    },
-    schoolData: defaultSchoolData,
-    communityProgramData: defaultCommunityPrograms,
-    communityDemographics: defaultCommunityDemographics,
-    housingOptions: defaultHousingOptions
-  };
+  const fallbackRecommendations = defaultRecommendations;
 
   // Fetch personalized recommendations from OpenAI API
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async () => {
     if (!zipCode) return;
     
     setLoading(true);
@@ -346,23 +245,44 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       }
       
       const recommendationsData = await response.json();
-      setRecommendations(recommendationsData);
-    } catch (err: Error | unknown) {
+      
+      // Ensure the response has the expected structure
+      const validatedData: MoveRecommendations = {
+        townData: recommendationsData.townData || defaultRecommendations.townData,
+        neighborhoodData: {
+          topNeighborhoods: Array.isArray(recommendationsData.neighborhoodData?.topNeighborhoods) 
+            ? recommendationsData.neighborhoodData.topNeighborhoods 
+            : defaultRecommendations.neighborhoodData.topNeighborhoods
+        },
+        schoolData: Array.isArray(recommendationsData.schoolData) 
+          ? recommendationsData.schoolData 
+          : defaultRecommendations.schoolData,
+        communityProgramData: Array.isArray(recommendationsData.communityProgramData) 
+          ? recommendationsData.communityProgramData 
+          : defaultRecommendations.communityProgramData,
+        communityDemographics: recommendationsData.communityDemographics || defaultRecommendations.communityDemographics,
+        housingOptions: Array.isArray(recommendationsData.housingOptions) 
+          ? recommendationsData.housingOptions 
+          : defaultRecommendations.housingOptions
+      };
+      
+      setRecommendations(validatedData);
+    } catch (err) {
       console.error('Error fetching move recommendations:', err);
       setError(`Failed to fetch personalized recommendations: ${err instanceof Error ? err.message : String(err)}. Using default data instead.`);
       // Use fallback recommendations
-      setRecommendations(fallbackRecommendations)
+      setRecommendations(fallbackRecommendations);
     } finally {
       setLoading(false);
     }
-  };
+  }, [zipCode, assessmentData, contextData, fallbackRecommendations]);
   
   // Trigger the API call when zipCode changes
   useEffect(() => {
     if (zipCode && zipCode.length >= 5) {
       fetchRecommendations();
     }
-  }, [zipCode]);
+  }, [zipCode, fetchRecommendations]);
 
   const handleSaveChoices = () => {
     if (onSaveChoices && selectedSchool && selectedCommunityPrograms.length > 0) {
@@ -383,6 +303,24 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
     zipCode && 
     selectedNeighborhood && 
     selectedHousingType;
+
+  // Safe number formatting function to handle undefined values
+  const formatNumber = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) {
+      return 'N/A';
+    }
+    try {
+      return value.toLocaleString();
+    } catch (error) {
+      console.error('Error formatting number:', error);
+      return String(value || 'N/A');
+    }
+  };
+
+  // Ensure neighborhoods data is valid
+  const neighborhoods = Array.isArray(recommendations?.neighborhoodData?.topNeighborhoods) 
+    ? recommendations.neighborhoodData.topNeighborhoods 
+    : defaultRecommendations.neighborhoodData.topNeighborhoods;
 
   return (
     <div className="space-y-12 mt-16">
@@ -450,10 +388,8 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
             </div>
           )}
           
-
-          
           {/* Town Information */}
-          {!loading && (
+          {!loading && recommendations?.townData && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-4 text-left">Township Information</h3>
               <div className="text-left space-y-2">
@@ -488,7 +424,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                   <h3 className="text-2xl font-semibold mb-4">Top Neighborhoods in {zipCode}</h3>
                   <p className="mb-4">Select a neighborhood you&apos;re interested in:</p>
                   
-                  {recommendations.neighborhoodData.topNeighborhoods.map((neighborhood) => (
+                  {neighborhoods.map((neighborhood) => (
                   <div 
                     key={neighborhood.name} 
                     className={`
@@ -518,7 +454,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Local Schools */}
-          {!loading && (
+          {!loading && Array.isArray(recommendations?.schoolData) && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-4">Local Schools</h3>
               <p className="mb-4">Select a school that would be a good alternative:</p>
@@ -566,7 +502,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Community Programs */}
-          {!loading && (
+          {!loading && Array.isArray(recommendations?.communityProgramData) && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-4">Community Programs</h3>
               <p className="mb-4">Select community programs your child can be part of:</p>
@@ -610,7 +546,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Community Demographics */}
-          {!loading && (
+          {!loading && recommendations?.communityDemographics && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-6 text-center">Community Demographics</h3>
               <div className="grid md:grid-cols-2 gap-6">
@@ -619,21 +555,22 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span>Total Population:</span>
-                      <span>{recommendations.communityDemographics.population}</span>
+                      <span>{formatNumber(recommendations.communityDemographics.population)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Median Age:</span>
-                      <span>{recommendations.communityDemographics.medianAge}</span>
+                      <span>{recommendations.communityDemographics.medianAge || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Median Household Income:</span>
-                      <span>${recommendations.communityDemographics.medianHousehold.toLocaleString()}</span>
+                      <span>${formatNumber(recommendations.communityDemographics.medianHousehold)}</span>
                     </div>
                   </div>
                   
                   <h5 className="mt-6 text-xl font-semibold mb-4">Ethnic Composition</h5>
                   <div className="space-y-2">
-                    {recommendations.communityDemographics.ethnicComposition.map((group) => (
+                    {Array.isArray(recommendations.communityDemographics.ethnicComposition) && 
+                      recommendations.communityDemographics.ethnicComposition.map((group) => (
                       <div key={group.group} className="flex justify-between">
                         <span>{group.group}</span>
                         <span>{group.percentage}%</span>
@@ -644,7 +581,8 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                 <div>
                   <h4 className="text-xl font-semibold mb-4">Education Levels</h4>
                   <div className="space-y-2">
-                    {recommendations.communityDemographics.educationLevel.map((level) => (
+                    {Array.isArray(recommendations.communityDemographics.educationLevel) && 
+                      recommendations.communityDemographics.educationLevel.map((level) => (
                       <div key={level.level} className="flex justify-between">
                         <span>{level.level}</span>
                         <span>{level.percentage}%</span>
@@ -657,7 +595,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Housing Options - UPDATED WITH SELECTION */}
-          {!loading && (
+          {!loading && Array.isArray(recommendations?.housingOptions) && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-6 text-center">Housing Options</h3>
               <p className="mb-4 text-center">Select a housing type you&apos;re interested in:</p>
@@ -730,9 +668,6 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
             </div>
           </div>
           )}
-
-          {/* Personalized Recommendations */}
-
           
           {/* Save Choices Button */}
           {hasRequiredSelections ? (

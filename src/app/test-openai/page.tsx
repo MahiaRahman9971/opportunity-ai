@@ -2,11 +2,16 @@
 
 import React, { useState } from 'react'
 
+// Define a type for the API response
+interface OpenAIResponse {
+  [key: string]: unknown;
+}
+
 export default function TestOpenAI() {
   const [address, setAddress] = useState('')
   const [income, setIncome] = useState('<25k')
   const [loading, setLoading] = useState(false)
-  const [response, setResponse] = useState<any>(null)
+  const [response, setResponse] = useState<OpenAIResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,9 +40,9 @@ export default function TestOpenAI() {
       
       const data = await res.json()
       setResponse(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error testing OpenAI API:', err)
-      setError(err.message || 'An error occurred while testing the OpenAI API')
+      setError(err instanceof Error ? err.message : 'An error occurred while testing the OpenAI API')
     } finally {
       setLoading(false)
     }
@@ -109,7 +114,7 @@ export default function TestOpenAI() {
       {response && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-green-600 mb-2">Success!</h2>
-          <p className="mb-4">OpenAI API is working correctly. Here's the response:</p>
+          <p className="mb-4">OpenAI API is working correctly. Here&apos;s the response:</p>
           
           <div className="mt-4 p-4 bg-white border border-gray-200 rounded overflow-auto">
             <pre className="text-sm font-mono whitespace-pre-wrap">

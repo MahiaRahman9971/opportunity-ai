@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Define interfaces for the request data
+interface Child {
+  age?: string | number;
+  gender?: string;
+  ethnicity?: string;
+}
+
+interface MoveRequestData {
+  address?: string;
+  zipCode?: string;
+  income?: string;
+  children?: Child[];
+}
+
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,7 +23,7 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { address, zipCode, income, children } = await request.json();
+    const { address, zipCode, income, children } = await request.json() as MoveRequestData;
 
     if (!address && !zipCode) {
       return NextResponse.json(
@@ -25,7 +39,7 @@ export async function POST(request: NextRequest) {
       Family details:
       - Income bracket: ${income || 'Not specified'}
       - Number of children: ${children?.length || 0}
-      ${children?.map((child: any, index: number) => `
+      ${children?.map((child: Child, index: number) => `
       - Child ${index + 1}:
         - Age: ${child.age || 'Not specified'}
         - Gender: ${child.gender || 'Not specified'}
@@ -133,14 +147,13 @@ export async function POST(request: NextRequest) {
 
     // Parse the JSON response
     const recommendations = JSON.parse(content);
-
     return NextResponse.json(recommendations);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating moving recommendations:', error);
     
     // Provide more detailed error information
-    const errorMessage = error.message || 'Unknown error';
-    const errorStatus = error.status || 500;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStatus = 500;
     
     return NextResponse.json(
       { 
