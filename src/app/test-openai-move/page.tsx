@@ -2,12 +2,31 @@
 
 import React, { useState } from 'react'
 
+// Define proper interface for the API response
+interface MoveApiResponse {
+  // Add specific fields based on what your API returns
+  // This is a sample structure - adjust according to your actual response
+  recommendations?: Array<{
+    neighborhood?: string;
+    schools?: Array<{
+      name?: string;
+      rating?: number;
+      distance?: number;
+    }>;
+    amenities?: string[];
+    // Add other fields as needed
+  }>;
+  message?: string;
+  status?: string;
+  // Add other top-level fields as needed
+}
+
 export default function TestOpenAIMove() {
   const [zipCode, setZipCode] = useState('')
   const [address, setAddress] = useState('')
   const [income, setIncome] = useState('<25k')
   const [loading, setLoading] = useState(false)
-  const [response, setResponse] = useState<any>(null)
+  const [response, setResponse] = useState<MoveApiResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,11 +54,11 @@ export default function TestOpenAIMove() {
         throw new Error(`API returned status code ${res.status}`)
       }
       
-      const data = await res.json()
+      const data = await res.json() as MoveApiResponse
       setResponse(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error testing OpenAI Move API:', err)
-      setError(err.message || 'An error occurred while testing the OpenAI Move API')
+      setError(err instanceof Error ? err.message : 'An error occurred while testing the OpenAI Move API')
     } finally {
       setLoading(false)
     }
@@ -125,7 +144,7 @@ export default function TestOpenAIMove() {
       {response && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-green-600 mb-2">Success!</h2>
-          <p className="mb-4">OpenAI Move API is working correctly. Here's the response:</p>
+          <p className="mb-4">OpenAI Move API is working correctly. Here&apos;s the response:</p>
           
           <div className="mt-4 p-4 bg-white border border-gray-200 rounded overflow-auto">
             <pre className="text-sm font-mono whitespace-pre-wrap">
