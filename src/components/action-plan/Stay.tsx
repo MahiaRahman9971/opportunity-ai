@@ -125,9 +125,14 @@ const filterSchoolsByChildAge = (schools: SchoolData[], assessmentData: AssessDa
     .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
   // Filter schools that match any of the needed school types or are marked as 'all' (all grades)
-  return schools.filter(school => 
-    school.schoolType === 'all' || neededSchoolTypes.includes(school.schoolType as any)
-  );
+  return schools.filter(school => {
+    // If schoolType is undefined, don't include it
+    if (!school.schoolType) return false;
+    
+    // Now we know schoolType is defined, check if it's 'all' or in neededSchoolTypes
+    return school.schoolType === 'all' || 
+           neededSchoolTypes.includes(school.schoolType as 'elementary' | 'middle' | 'high');
+  });
 };
 
 // Helper function to filter community programs based on children's profiles
@@ -158,9 +163,16 @@ const filterCommunityPrograms = (
     // If no age ranges are specified, include the program
     if (!program.ageRanges || program.ageRanges.length === 0) return true;
     
+    // At this point we know program.ageRanges exists and has elements
+    const ageRanges = program.ageRanges; // Store in a local variable to help TypeScript understand it's defined
+    
     // Check if program serves any of the children's age ranges
-    const ageMatch = program.ageRanges.includes('all' as any) || 
-      childAgeRanges.some(age => program.ageRanges?.includes(age as any));
+    const ageMatch = ageRanges.includes('all') || 
+      childAgeRanges.some(age => {
+        // Convert the age string to the appropriate type for the includes check
+        const validAge = age as 'preschool' | 'elementary' | 'middle' | 'high';
+        return ageRanges.includes(validAge);
+      });
     
     // Check gender compatibility
     const genderMatch = !program.genderFocus || 

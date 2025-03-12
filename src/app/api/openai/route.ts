@@ -5,7 +5,13 @@ import OpenAI from 'openai';
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  dangerouslyAllowBrowser: false
 });
+
+// Check if API key is configured
+if (!process.env.OPENAI_API_KEY) {
+  console.error('OPENAI_API_KEY is not configured in environment variables');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,13 +25,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate input data
+    if (!Array.isArray(children)) {
+      return NextResponse.json(
+        { error: 'Children data must be an array' },
+        { status: 400 }
+      );
+    }
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-3.5-turbo-1106", // Using a more reliable model
       messages: [
         {
           role: "system",
           content: `You are an AI assistant that provides personalized recommendations for families looking to 
-                    improve their children's future opportunities in their current location. Format your response as JSON.`
+                    improve their children's future opportunities in their current location. Format your response as valid JSON. 
+                    Your entire response must be valid JSON that can be parsed with JSON.parse().`
         },
         {
           role: "user",
@@ -34,7 +49,7 @@ export async function POST(req: NextRequest) {
                     - Annual household income: ${income}
                     - Children: ${JSON.stringify(children)}
                     
-                    Please include the following in your JSON response:
+                    Please include the following in your JSON response (your entire response must be valid JSON):
                     
                     1. townData: Information about their current town/city including name, website, and description.
                     
@@ -76,8 +91,9 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error('Error in OpenAI API call:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to generate recommendations', details: error.message },
+      { error: 'Failed to generate recommendations', details: errorMessage },
       { status: 500 }
     );
   }

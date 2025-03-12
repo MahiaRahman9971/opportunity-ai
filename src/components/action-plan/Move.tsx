@@ -212,9 +212,12 @@ const filterSchoolsByChildAge = (schools: SchoolData[], assessmentData: AssessDa
     .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
   // Filter schools that match any of the needed school types or are marked as 'all' (all grades)
-  return schools.filter(school => 
-    school.schoolType === 'all' || neededSchoolTypes.includes(school.schoolType as any)
-  );
+  return schools.filter(school => {
+    // If schoolType is undefined, don't include this school
+    if (!school.schoolType) return false;
+    // Include if it's 'all' or matches one of the needed types
+    return school.schoolType === 'all' || neededSchoolTypes.includes(school.schoolType);
+  });
 };
 
 // Helper function to filter community programs based on children's profiles
@@ -245,9 +248,14 @@ const filterCommunityPrograms = (
     // If no age ranges are specified, include the program
     if (!program.ageRanges || program.ageRanges.length === 0) return true;
     
+    // At this point we know program.ageRanges exists and has elements
     // Check if program serves any of the children's age ranges
-    const ageMatch = program.ageRanges.includes('all' as any) || 
-      childAgeRanges.some(age => program.ageRanges?.includes(age as any));
+    const ageMatch = program.ageRanges.includes('all') || 
+      childAgeRanges.some(age => {
+        // Convert the age string to the appropriate type for the includes check
+        const validAge = age as 'preschool' | 'elementary' | 'middle' | 'high';
+        return program.ageRanges!.includes(validAge);
+      });
     
     // Check gender compatibility
     const genderMatch = !program.genderFocus || 
@@ -468,8 +476,23 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       
       if (!response.ok) {
         const errorMessage = `API returned status code ${response.status}: ${response.statusText}`;
-        // Log the error but don't throw - we'll fall back to default data instead
         console.error(`API error: ${errorMessage}`);
+        
+        try {
+          // Try to get more detailed error information from the response
+          const errorData = await response.json();
+          console.error('Error details:', errorData);
+          
+          if (errorData.details) {
+            console.error('API error details:', errorData.details);
+          }
+          
+          if (errorData.rawResponse) {
+            console.error('Raw API response:', errorData.rawResponse);
+          }
+        } catch (e) {
+          console.error('Could not parse error response:', e);
+        }
         
         // Apply filtering to fallback recommendations
         const filteredDefaultSchools = filterSchoolsByChildAge(fallbackRecommendations.schoolData, userData);
@@ -481,7 +504,8 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
         setFilteredPrograms(filteredDefaultPrograms);
         setFilteredHousingOptions(ratedDefaultHousingOptions);
         setRecommendations(fallbackRecommendations);
-        setError(`Failed to fetch personalized recommendations: ${errorMessage}. Using default data instead.`);
+        setError(`Using default recommendations. API error: ${errorMessage}`);
+        setLoading(false);
         
         // Exit early from the function
         return;
@@ -492,7 +516,20 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
         recommendationsData = await response.json();
       } catch (jsonError) {
         console.error('Error parsing API response as JSON:', jsonError);
-        throw new Error('Failed to parse the API response as JSON. Using default data instead.');
+        
+        // Apply filtering to fallback recommendations
+        const filteredDefaultSchools = filterSchoolsByChildAge(fallbackRecommendations.schoolData, userData);
+        const filteredDefaultPrograms = filterCommunityPrograms(fallbackRecommendations.communityProgramData, userData);
+        const ratedDefaultHousingOptions = filterHousingOptions(fallbackRecommendations.housingOptions, userData);
+        
+        // Update state with fallback data
+        setFilteredSchools(filteredDefaultSchools);
+        setFilteredPrograms(filteredDefaultPrograms);
+        setFilteredHousingOptions(ratedDefaultHousingOptions);
+        setRecommendations(fallbackRecommendations);
+        setError('Could not parse API response. Using default recommendations instead.');
+        setLoading(false);
+        return;
       }
       
       // Ensure the response has the expected structure
