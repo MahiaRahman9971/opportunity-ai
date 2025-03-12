@@ -95,7 +95,11 @@ export async function POST(req: NextRequest) {
       // Validate the response structure
       if (!recommendations.townData || !recommendations.schoolData) {
         console.error('Invalid response structure:', recommendations);
-        throw new Error('OpenAI response missing required fields');
+        // Instead of throwing an error, return the data we have with a warning
+        return NextResponse.json({
+          ...recommendations,
+          warning: 'Response may be missing some required fields'
+        });
       }
       
       return NextResponse.json(recommendations);
@@ -103,11 +107,23 @@ export async function POST(req: NextRequest) {
       console.error('Error parsing OpenAI response:', parseError);
       console.log('Raw response:', responseContent);
       
-      // Return a 500 error directly instead of throwing
-      return NextResponse.json(
-        { error: 'Failed to parse the AI response as JSON', rawResponse: responseContent },
-        { status: 500 }
-      );
+      // Try to determine if the response is actually valid JSON but not in our expected format
+      try {
+        // If this is valid JSON but not in our expected format, let's return it anyway
+        const jsonData = JSON.parse(responseContent);
+        console.log('Response is valid JSON but not in expected format');
+        
+        return NextResponse.json({
+          ...jsonData,
+          warning: 'Response format may not match expected structure'
+        });
+      } catch {
+        // If we get here, it's really not valid JSON
+        return NextResponse.json(
+          { error: 'Failed to parse the AI response as JSON', rawResponse: responseContent },
+          { status: 500 }
+        );
+      }
     }
   } catch (error) {
     console.error('Error in OpenAI API call:', error);

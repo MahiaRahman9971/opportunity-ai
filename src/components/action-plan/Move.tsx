@@ -490,6 +490,30 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           if (errorData.rawResponse) {
             console.error('Raw API response:', errorData.rawResponse);
           }
+          
+          // If we have valid JSON data in the error response that looks like recommendations,
+          // we can use it instead of falling back to default data
+          if (errorData.townData && errorData.schoolData) {
+            console.log('Found valid recommendation data in error response, using it');
+            
+            // Process the data we received
+            const filteredSchools = filterSchoolsByChildAge(errorData.schoolData, userData);
+            const filteredPrograms = filterCommunityPrograms(errorData.communityProgramData || [], userData);
+            const ratedHousingOptions = filterHousingOptions(errorData.housingOptions || [], userData);
+            
+            // Update state with the data from the error response
+            setFilteredSchools(filteredSchools);
+            setFilteredPrograms(filteredPrograms);
+            setFilteredHousingOptions(ratedHousingOptions);
+            setRecommendations(errorData);
+            
+            // Show a warning but don't treat it as a full error
+            setError(`Using recommendations from response despite API error: ${errorMessage}`);
+            setLoading(false);
+            
+            // Exit early from the function
+            return;
+          }
         } catch (e) {
           console.error('Could not parse error response:', e);
         }
