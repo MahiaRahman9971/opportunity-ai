@@ -1,54 +1,16 @@
+// app/api/openai/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
-// Define interfaces for the request data
-interface Child {
-  age?: string | number;
-  gender?: string;
-  ethnicity?: string;
-}
-
-interface RequestData {
-  address: string;
-  income?: string;
-  children?: Child[];
-}
-
-// Response interfaces
-interface TownData {
-  name: string;
-  website: string;
-  description: string;
-}
-
-interface SchoolData {
-  name: string;
-  rating: number;
-  description: string;
-  website: string;
-}
-
-interface CommunityProgramData {
-  name: string;
-  description: string;
-  website: string;
-}
-
-interface RecommendationsResponse {
-  townData: TownData;
-  schoolData: SchoolData[];
-  communityProgramData: CommunityProgramData[];
-}
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: false,
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { address, income, children } = await request.json() as RequestData;
+    const body = await req.json();
+    const { address, income, children } = body;
 
     if (!address) {
       return NextResponse.json(
@@ -57,115 +19,66 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a prompt for OpenAI based on the user's information
-    const prompt = `
-      Generate personalized recommendations for a family living at ${address}.
-      
-      Family details:
-      - Income bracket: ${income || 'Not specified'}
-      - Number of children: ${children?.length || 0}
-      ${children?.map((child: Child, index: number) => `
-      - Child ${index + 1}:
-        - Age: ${child.age || 'Not specified'}
-        - Gender: ${child.gender || 'Not specified'}
-        - Ethnicity: ${child.ethnicity || 'Not specified'}
-      `).join('') || ''}
-      
-      Please provide the following information in JSON format:
-      1. Township information (name, website, description)
-      2. Local school recommendations (3 schools with name, rating, description, website)
-      3. Community program recommendations (3 programs with name, description, website)
-      
-      The response should be structured EXACTLY as follows, with no extra fields or nested objects:
-      {
-        "townData": {
-          "name": "Township Name",
-          "website": "https://example.com",
-          "description": "Description text"
-        },
-        "schoolData": [
-          {
-            "name": "School Name",
-            "rating": 4.5,
-            "description": "School description",
-            "website": "https://school.example.com"
-          }
-        ],
-        "communityProgramData": [
-          {
-            "name": "Program Name",
-            "description": "Program description",
-            "website": "https://program.example.com"
-          }
-        ]
-      }
-      
-      Ensure your response follows this format exactly and is valid JSON. Do not include any trailing commas, comments, or malformed JSON syntax.
-    `;
-
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that provides personalized recommendations for families based on their location and demographics. Your responses should be accurate, helpful, and formatted precisely as requested with valid JSON only."
+          content: `You are an AI assistant that provides personalized recommendations for families looking to 
+                    improve their children's future opportunities in their current location. Format your response as JSON.`
         },
         {
           role: "user",
-          content: prompt
+          content: `Generate detailed, personalized recommendations for a family living at this address: ${address}.
+                    Additional family information:
+                    - Annual household income: ${income}
+                    - Children: ${JSON.stringify(children)}
+                    
+                    Please include the following in your JSON response:
+                    
+                    1. townData: Information about their current town/city including name, website, and description.
+                    
+                    2. schoolData: Array of school recommendations with:
+                       - name, rating (1-10), description, website
+                       - schoolType: "elementary", "middle", "high", or "all" based on grade levels
+                       - Make sure each school is appropriate for the children's ages:
+                         * Ages 5-10: elementary schools
+                         * Ages 11-13: middle schools
+                         * Ages 14-18: high schools
+                    
+                    3. communityProgramData: Array of recommendations with:
+                       - name, description, website
+                       - ageRanges: Array of ["preschool", "elementary", "middle", "high", "all"]
+                       - genderFocus: "all", "boys", or "girls" if applicable
+                       - tags: Array of relevant categories like "stem", "arts", "sports", etc.
+                       - Make recommendations based on the children's ages, genders, and family income
+                    
+                    Format everything as valid JSON.`
         }
-      ],
-      response_format: { type: "json_object" }
+      ]
     });
 
-    // Extract the content from the response
-    const content = response.choices[0]?.message?.content;
+    // Extract the response content
+    const responseContent = completion.choices[0].message.content;
     
-    if (!content) {
-      return NextResponse.json(
-        { error: 'Failed to generate recommendations' },
-        { status: 500 }
-      );
+    if (!responseContent) {
+      throw new Error('No content in the OpenAI response');
     }
 
-    // Parse the JSON response with error handling
-    let recommendations: RecommendationsResponse;
     try {
-      recommendations = JSON.parse(content);
-      
-      // Validate the structure
-      if (!recommendations.townData || !Array.isArray(recommendations.schoolData) || !Array.isArray(recommendations.communityProgramData)) {
-        throw new Error('Response does not match expected format');
-      }
-      
+      // Parse the JSON response
+      const recommendations = JSON.parse(responseContent);
+      return NextResponse.json(recommendations);
     } catch (parseError) {
-      console.error('JSON parsing error:', parseError, '\nContent:', content);
-      return NextResponse.json(
-        { 
-          error: 'Failed to parse recommendations', 
-          details: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
-          timestamp: new Date().toISOString()
-        },
-        { status: 500 }
-      );
+      console.error('Error parsing OpenAI response:', parseError);
+      console.log('Raw response:', responseContent);
+      throw new Error('Failed to parse the AI response as JSON');
     }
-
-    return NextResponse.json(recommendations);
-  } catch (error: unknown) {
-    console.error('Error generating recommendations:', error);
-    
-    // Provide more detailed error information
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStatus = (error as { status?: number })?.status || 500;
-    
+  } catch (error) {
+    console.error('Error in OpenAI API call:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to generate recommendations', 
-        details: errorMessage,
-        timestamp: new Date().toISOString()
-      },
-      { status: errorStatus }
+      { error: 'Failed to generate recommendations', details: error.message },
+      { status: 500 }
     );
   }
 }

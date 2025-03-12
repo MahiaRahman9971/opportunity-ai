@@ -26,12 +26,16 @@ type SchoolData = {
   rating: number;
   description: string;
   website: string;
+  schoolType?: 'elementary' | 'middle' | 'high' | 'all'; // New field
 };
 
 type CommunityProgramData = {
   name: string;
   description: string;
   website: string;
+  ageRanges?: ('preschool' | 'elementary' | 'middle' | 'high' | 'all')[]; // New field
+  genderFocus?: 'all' | 'boys' | 'girls'; // New field
+  tags?: string[]; // New field
 };
 
 type EthnicGroup = {
@@ -57,6 +61,7 @@ type HousingOption = {
   priceRange: string;
   averageSize: string;
   description: string;
+  suitability?: number; // New field for family suitability score (1-5)
 };
 
 type MoveRecommendations = {
@@ -87,36 +92,45 @@ const defaultRecommendations: MoveRecommendations = {
       name: 'Arlington Elementary',
       rating: 9.0,
       description: 'A top-rated elementary school with advanced educational programs and strong community involvement.',
-      website: 'https://www.arlingtonelementary.edu'
+      website: 'https://www.arlingtonelementary.edu',
+      schoolType: 'elementary'
     },
     {
-      name: 'Riverside Magnet School',
+      name: 'Riverside Middle School',
       rating: 8.5,
-      description: 'Innovative magnet school offering specialized STEM and arts programs with small class sizes.',
-      website: 'https://www.riversidemagnet.edu'
+      description: 'Innovative middle school offering specialized STEM and arts programs with small class sizes.',
+      website: 'https://www.riversidems.edu',
+      schoolType: 'middle'
     },
     {
-      name: 'Greenwood Community School',
+      name: 'Greenwood High School',
       rating: 8.3,
-      description: 'Community-focused school with comprehensive enrichment programs and strong parent engagement.',
-      website: 'https://www.greenwoodschool.edu'
+      description: 'Community-focused high school with comprehensive enrichment programs and strong parent engagement.',
+      website: 'https://www.greenwoodhs.edu',
+      schoolType: 'high'
     }
   ],
   communityProgramData: [
     {
       name: 'Arlington Youth Leadership',
       description: 'Comprehensive youth development program focusing on leadership skills, community service, and personal growth.',
-      website: 'https://www.arlingtonyouth.org'
+      website: 'https://www.arlingtonyouth.org',
+      ageRanges: ['middle', 'high'],
+      tags: ['leadership', 'community']
     },
     {
       name: 'STEM Innovators Club',
       description: 'Advanced science and technology program for curious young minds, offering hands-on robotics, coding, and innovation workshops.',
-      website: 'https://www.steminnovators.edu'
+      website: 'https://www.steminnovators.edu',
+      ageRanges: ['elementary', 'middle'],
+      tags: ['stem', 'technology', 'science']
     },
     {
       name: 'Creative Arts Academy',
       description: 'Comprehensive arts education program offering in-depth training in music, visual arts, theater, and dance.',
-      website: 'https://www.creativearts.org'
+      website: 'https://www.creativearts.org',
+      ageRanges: ['elementary', 'middle', 'high'],
+      tags: ['arts', 'music', 'theater']
     }
   ],
   communityDemographics: {
@@ -142,19 +156,22 @@ const defaultRecommendations: MoveRecommendations = {
       type: 'Single Family Home',
       priceRange: '$450,000 - $750,000',
       averageSize: '2,200 - 3,500 sq ft',
-      description: 'Spacious homes with yards, ideal for families'
+      description: 'Spacious homes with yards, ideal for families',
+      suitability: 4
     },
     {
       type: 'Townhouse',
       priceRange: '$350,000 - $550,000',
       averageSize: '1,500 - 2,200 sq ft',
-      description: 'Modern living with lower maintenance'
+      description: 'Modern living with lower maintenance',
+      suitability: 3
     },
     {
       type: 'Apartment',
       priceRange: '$1,800 - $3,200/month',
       averageSize: '800 - 1,500 sq ft',
-      description: 'Convenient options with amenities'
+      description: 'Convenient options with amenities',
+      suitability: 2
     }
   ]
 };
@@ -170,6 +187,200 @@ interface MoveProps {
   assessmentData?: AssessData; 
 }
 
+// Helper functions
+// Helper function to determine appropriate school type based on child's age
+const getSchoolTypeForAge = (age: number): 'elementary' | 'middle' | 'high' => {
+  if (age >= 5 && age <= 10) return 'elementary';
+  if (age >= 11 && age <= 13) return 'middle';
+  if (age >= 14) return 'high';
+  return 'elementary'; // Default to elementary for very young children
+};
+
+// Helper function to filter schools based on children's ages
+const filterSchoolsByChildAge = (schools: SchoolData[], assessmentData: AssessData | undefined): SchoolData[] => {
+  // If no children data is available, return all schools
+  if (!assessmentData || !assessmentData.children || assessmentData.children.length === 0) {
+    return schools;
+  }
+
+  // Get school types needed for all children in the family
+  const neededSchoolTypes = assessmentData.children
+    .map(child => {
+      const age = parseInt(child.age);
+      return getSchoolTypeForAge(age);
+    })
+    .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+
+  // Filter schools that match any of the needed school types or are marked as 'all' (all grades)
+  return schools.filter(school => 
+    school.schoolType === 'all' || neededSchoolTypes.includes(school.schoolType as any)
+  );
+};
+
+// Helper function to filter community programs based on children's profiles
+const filterCommunityPrograms = (
+  programs: CommunityProgramData[], 
+  assessmentData: AssessData | undefined
+): CommunityProgramData[] => {
+  // If no children data is available, return all programs
+  if (!assessmentData || !assessmentData.children || assessmentData.children.length === 0) {
+    return programs;
+  }
+
+  // Get age ranges needed for all children in the family
+  const childAgeRanges = assessmentData.children.map(child => {
+    const age = parseInt(child.age);
+    if (age >= 5 && age <= 10) return 'elementary';
+    if (age >= 11 && age <= 13) return 'middle';
+    if (age >= 14) return 'high';
+    return 'preschool'; // For very young children
+  });
+
+  // Get gender preferences
+  const hasGirlChild = assessmentData.children.some(child => child.gender === 'F');
+  const hasBoyChild = assessmentData.children.some(child => child.gender === 'M');
+
+  // Filter programs that match age ranges and gender considerations
+  return programs.filter(program => {
+    // If no age ranges are specified, include the program
+    if (!program.ageRanges || program.ageRanges.length === 0) return true;
+    
+    // Check if program serves any of the children's age ranges
+    const ageMatch = program.ageRanges.includes('all' as any) || 
+      childAgeRanges.some(age => program.ageRanges?.includes(age as any));
+    
+    // Check gender compatibility
+    const genderMatch = !program.genderFocus || 
+      program.genderFocus === 'all' ||
+      (program.genderFocus === 'girls' && hasGirlChild) ||
+      (program.genderFocus === 'boys' && hasBoyChild);
+    
+    return ageMatch && genderMatch;
+  });
+};
+
+// Calculate housing suitability based on family characteristics
+const filterHousingOptions = (
+  options: HousingOption[], 
+  assessmentData: AssessData | undefined
+): HousingOption[] => {
+  // If no assessment data, return all options
+  if (!assessmentData) return options;
+  
+  // Calculate family size (parents + children)
+  const familySize = (assessmentData.children?.length || 0) + 2; // Assuming 2 parents
+  
+  // Tag each housing option with a suitability score
+  return options.map(option => {
+    let suitability = option.suitability || 3; // Base suitability score
+    
+    // Adjust based on family size
+    if (familySize >= 5 && option.type === 'Apartment') {
+      suitability -= 2; // Larger families may need more space than typical apartments
+    }
+    if (familySize <= 3 && option.type === 'Single Family Home') {
+      suitability -= 1; // Small families might find single family homes less economical
+    }
+    if (familySize >= 4 && option.type === 'Single Family Home') {
+      suitability += 1; // Larger families might benefit from single family homes
+    }
+    
+    // Adjust based on income
+    const incomeRange = assessmentData.income;
+    if (incomeRange === '<25k' && option.type === 'Single Family Home') {
+      suitability -= 2; // Lower income families might find single family homes less affordable
+    }
+    if (incomeRange === '>100k' && option.type === 'Apartment') {
+      suitability -= 1; // Higher income families might prefer more spacious options
+    }
+    
+    // Ensure suitability stays within 1-5 range
+    suitability = Math.max(1, Math.min(5, suitability));
+    
+    return {
+      ...option,
+      suitability
+    };
+  }).sort((a, b) => (b.suitability || 0) - (a.suitability || 0)); // Sort by suitability
+};
+
+// Helper to infer school type if not provided
+const inferSchoolType = (school: SchoolData): SchoolData => {
+  if (school.schoolType) return school;
+  
+  const name = school.name.toLowerCase();
+  let schoolType: 'elementary' | 'middle' | 'high' | 'all' = 'all';
+  
+  if (name.includes('elementary') || name.includes('primary')) {
+    schoolType = 'elementary';
+  } else if (name.includes('middle') || name.includes('junior')) {
+    schoolType = 'middle';
+  } else if (name.includes('high')) {
+    schoolType = 'high';
+  }
+  
+  return { ...school, schoolType };
+};
+
+// Helper to get school level message
+const getSchoolLevelMessage = (assessmentData: AssessData | undefined): string => {
+  if (!assessmentData || !assessmentData.children || assessmentData.children.length === 0) {
+    return 'Showing all schools in the area';
+  }
+
+  const schoolTypes = assessmentData.children
+    .map(child => getSchoolTypeForAge(parseInt(child.age)))
+    .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    
+  const typeLabels: Record<string, string> = {
+    elementary: 'elementary schools',
+    middle: 'middle schools',
+    high: 'high schools'
+  };
+  
+  const typeStrings = schoolTypes.map(type => typeLabels[type]);
+  
+  if (typeStrings.length === 1) {
+    return `Showing ${typeStrings[0]} based on your child's age`;
+  } else {
+    return `Showing ${typeStrings.join(' and ')} based on your children's ages`;
+  }
+};
+
+// Generate personalized advice based on the user's specific situation
+const generatePersonalizedAdvice = (assessmentData: AssessData | undefined): string => {
+  if (!assessmentData) return '';
+  
+  const advice = [];
+  
+  // Age-specific advice
+  const hasYoungChild = assessmentData.children?.some(child => parseInt(child.age) <= 10);
+  const hasTeenager = assessmentData.children?.some(child => parseInt(child.age) >= 13);
+  
+  if (hasYoungChild) {
+    advice.push("For your younger child, look for neighborhoods with parks, playgrounds, and strong elementary schools.");
+  }
+  
+  if (hasTeenager) {
+    advice.push("For your teenager, consider areas with extracurricular activities, public transportation access, and college prep programs.");
+  }
+  
+  // Income-based advice
+  const lowerIncome = assessmentData.income === '<25k' || assessmentData.income === '25-50k';
+  const higherIncome = assessmentData.income === '>100k';
+  
+  if (lowerIncome) {
+    advice.push("Consider areas with affordable housing options, good public transportation, and schools with strong support services.");
+  }
+  
+  if (higherIncome) {
+    advice.push("Look for neighborhoods with high opportunity scores, excellent school districts, and enrichment resources.");
+  }
+  
+  // Return the personalized advice
+  return advice.join(' ');
+};
+
 const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
   const [selectedCommunityPrograms, setSelectedCommunityPrograms] = useState<string[]>([]);
@@ -179,12 +390,16 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<MoveRecommendations>(defaultRecommendations);
+  const [filteredSchools, setFilteredSchools] = useState<SchoolData[]>([]);
+  const [filteredPrograms, setFilteredPrograms] = useState<CommunityProgramData[]>([]);
+  const [filteredHousingOptions, setFilteredHousingOptions] = useState<HousingOption[]>([]);
   const [mapAddress, setMapAddress] = useState<string>('');
   const [shouldFetchData, setShouldFetchData] = useState(false);
   
   // Get assessment data from context if not provided as prop
   const assessmentContext = useAssessment();
   const contextData = assessmentContext?.data;
+  const userData = assessmentData || contextData;
 
   const handleSchoolSelect = (schoolName: string) => {
     setSelectedSchool(schoolName);
@@ -230,7 +445,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
     setError(null);
     
     try {
-      const data = assessmentData || contextData || {};
+      const data = userData || {};
       const address = data.address || '';
       const income = data.income || '<25k';
       const children = data.children || [];
@@ -252,14 +467,33 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.details || 
-          `API returned status code ${response.status}: ${response.statusText}`
-        );
+        const errorMessage = `API returned status code ${response.status}: ${response.statusText}`;
+        // Log the error but don't throw - we'll fall back to default data instead
+        console.error(`API error: ${errorMessage}`);
+        
+        // Apply filtering to fallback recommendations
+        const filteredDefaultSchools = filterSchoolsByChildAge(fallbackRecommendations.schoolData, userData);
+        const filteredDefaultPrograms = filterCommunityPrograms(fallbackRecommendations.communityProgramData, userData);
+        const ratedDefaultHousingOptions = filterHousingOptions(fallbackRecommendations.housingOptions, userData);
+        
+        // Update state with fallback data
+        setFilteredSchools(filteredDefaultSchools);
+        setFilteredPrograms(filteredDefaultPrograms);
+        setFilteredHousingOptions(ratedDefaultHousingOptions);
+        setRecommendations(fallbackRecommendations);
+        setError(`Failed to fetch personalized recommendations: ${errorMessage}. Using default data instead.`);
+        
+        // Exit early from the function
+        return;
       }
       
-      const recommendationsData = await response.json();
+      let recommendationsData;
+      try {
+        recommendationsData = await response.json();
+      } catch (jsonError) {
+        console.error('Error parsing API response as JSON:', jsonError);
+        throw new Error('Failed to parse the API response as JSON. Using default data instead.');
+      }
       
       // Ensure the response has the expected structure
       const validatedData: MoveRecommendations = {
@@ -270,7 +504,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
             : defaultRecommendations.neighborhoodData.topNeighborhoods
         },
         schoolData: Array.isArray(recommendationsData.schoolData) 
-          ? recommendationsData.schoolData 
+          ? recommendationsData.schoolData.map(inferSchoolType)
           : defaultRecommendations.schoolData,
         communityProgramData: Array.isArray(recommendationsData.communityProgramData) 
           ? recommendationsData.communityProgramData 
@@ -281,10 +515,30 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           : defaultRecommendations.housingOptions
       };
       
+      // Apply filters based on user data
+      const filteredSchoolData = filterSchoolsByChildAge(validatedData.schoolData, userData);
+      const filteredProgramData = filterCommunityPrograms(validatedData.communityProgramData, userData);
+      const ratedHousingOptions = filterHousingOptions(validatedData.housingOptions, userData);
+      
+      // Update state
       setRecommendations(validatedData);
+      setFilteredSchools(filteredSchoolData);
+      setFilteredPrograms(filteredProgramData);
+      setFilteredHousingOptions(ratedHousingOptions);
+      
     } catch (err) {
       console.error('Error fetching move recommendations:', err);
       setError(`Failed to fetch personalized recommendations: ${err instanceof Error ? err.message : String(err)}. Using default data instead.`);
+      
+      // Use fallback recommendations but apply filtering
+      const filteredDefaultSchools = filterSchoolsByChildAge(fallbackRecommendations.schoolData, userData);
+      const filteredDefaultPrograms = filterCommunityPrograms(fallbackRecommendations.communityProgramData, userData);
+      const ratedDefaultHousingOptions = filterHousingOptions(fallbackRecommendations.housingOptions, userData);
+      
+      setFilteredSchools(filteredDefaultSchools);
+      setFilteredPrograms(filteredDefaultPrograms);
+      setFilteredHousingOptions(ratedDefaultHousingOptions);
+      
       // Use fallback recommendations
       setRecommendations(fallbackRecommendations);
     } finally {
@@ -292,7 +546,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
       // Reset the flag after fetching
       setShouldFetchData(false);
     }
-  }, [zipCode, assessmentData, contextData, fallbackRecommendations]);
+  }, [zipCode, userData, fallbackRecommendations]);
   
   // Trigger the API call when shouldFetchData is true
   useEffect(() => {
@@ -405,6 +659,14 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
             </div>
           )}
           
+          {/* Personalized Advice */}
+          {!loading && userData && (
+            <div className="bg-[#6CD9CA] bg-opacity-10 p-6 rounded-lg">
+              <h3 className="text-xl font-semibold mb-2">Personalized Advice</h3>
+              <p>{generatePersonalizedAdvice(userData)}</p>
+            </div>
+          )}
+          
           {/* Town Information */}
           {!loading && recommendations?.townData && (
             <div className="bg-white shadow-md rounded-lg p-6">
@@ -493,13 +755,14 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Local Schools */}
-          {!loading && Array.isArray(recommendations?.schoolData) && (
+          {!loading && filteredSchools.length > 0 && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-4">Local Schools</h3>
-              <p className="mb-4">Select a school that would be a good alternative:</p>
+              <p className="mb-1">Select a school that would be a good option:</p>
+              <p className="mb-4 text-sm text-gray-600">{getSchoolLevelMessage(userData)}</p>
               
               <div className="space-y-4">
-                {recommendations.schoolData.map((school) => (
+                {filteredSchools.map((school) => (
                   <div 
                     key={school.name}
                     className={`
@@ -515,7 +778,14 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                       <div className="flex-grow">
                         <div className="flex items-center justify-between">
                           <h4 className="text-xl font-semibold">{school.name}</h4>
-                          <p className="text-sm text-gray-600 ml-4">Rating: {school.rating}/10</p>
+                          <div className="flex items-center">
+                            <p className="text-sm text-gray-600 ml-4">Rating: {school.rating}/10</p>
+                            {school.schoolType && (
+                              <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs capitalize">
+                                {school.schoolType}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <p className="mt-1">{school.description}</p>
                       </div>
@@ -541,13 +811,13 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Community Programs */}
-          {!loading && Array.isArray(recommendations?.communityProgramData) && (
+          {!loading && filteredPrograms.length > 0 && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-4">Community Programs</h3>
               <p className="mb-4">Select community programs your child can be part of:</p>
               
               <div className="space-y-4">
-                {recommendations.communityProgramData.map((program) => (
+                {filteredPrograms.map((program) => (
                   <div 
                     key={program.name}
                     className={`
@@ -562,16 +832,37 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                       <div>
                         <h4 className="text-xl font-semibold">{program.name}</h4>
                       </div>
-                      <a 
-                        href={program.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-[#6CD9CA] hover:underline"
-                      >
-                        Website
-                      </a>
+                      <div className="flex items-center">
+                        {program.genderFocus && program.genderFocus !== 'all' && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs mr-2 capitalize">
+                            {program.genderFocus}
+                          </span>
+                        )}
+                        {program.ageRanges && program.ageRanges.length > 0 && program.ageRanges[0] !== 'all' && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs mr-2 capitalize">
+                            {program.ageRanges.join(', ')}
+                          </span>
+                        )}
+                        <a 
+                          href={program.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-[#6CD9CA] hover:underline"
+                        >
+                          Website
+                        </a>
+                      </div>
                     </div>
                     <p className="mt-2">{program.description}</p>
+                    {program.tags && program.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {program.tags.map(tag => (
+                          <span key={tag} className="px-2 py-0.5 bg-gray-100 rounded-full text-xs capitalize">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -634,13 +925,13 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           )}
 
           {/* Housing Options - UPDATED WITH SELECTION */}
-          {!loading && Array.isArray(recommendations?.housingOptions) && (
+          {!loading && filteredHousingOptions.length > 0 && (
             <div className="bg-white shadow-md rounded-lg p-6">
               <h3 className="text-2xl font-semibold mb-6 text-center">Housing Options</h3>
               <p className="mb-4 text-center">Select a housing type you&apos;re interested in:</p>
               
               <div className="grid md:grid-cols-3 gap-6 mb-8">
-                {recommendations.housingOptions.map((option) => (
+                {filteredHousingOptions.map((option) => (
                   <div 
                     key={option.type}
                     className={`
@@ -653,7 +944,18 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                   >
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="text-xl font-semibold">{option.type}</h4>
-                      <Home className="text-[#6CD9CA]" size={20} />
+                      <div className="flex items-center">
+                        <Home className="text-[#6CD9CA]" size={20} />
+                        {option.suitability !== undefined && (
+                          <span className={`ml-2 px-2 py-1 rounded-full text-xs
+                            ${option.suitability >= 4 ? 'bg-green-100 text-green-800' : 
+                             option.suitability >= 3 ? 'bg-blue-100 text-blue-800' : 
+                             'bg-gray-100 text-gray-800'}`}>
+                            {option.suitability >= 4 ? 'Highly Suitable' : 
+                             option.suitability >= 3 ? 'Suitable' : 'Less Suitable'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-2 text-gray-700">
                       <p><strong>Price Range:</strong> {option.priceRange}</p>

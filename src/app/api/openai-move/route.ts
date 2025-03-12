@@ -1,167 +1,91 @@
+// app/api/openai-move/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
-// Define interfaces for the request data
-interface Child {
-  age?: string | number;
-  gender?: string;
-  ethnicity?: string;
-}
-
-interface MoveRequestData {
-  address?: string;
-  zipCode?: string;
-  income?: string;
-  children?: Child[];
-}
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: false,
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { address, zipCode, income, children } = await request.json() as MoveRequestData;
+    const body = await req.json();
+    const { zipCode, income, children } = body;
 
-    if (!address && !zipCode) {
+    if (!zipCode) {
       return NextResponse.json(
-        { error: 'Address or ZIP code is required' },
+        { error: 'ZIP code is required' },
         { status: 400 }
       );
     }
 
-    // Create a prompt for OpenAI based on the user's information
-    const prompt = `
-      Generate personalized moving recommendations for a family currently living at ${address || 'their current address'} who wants to move to an area with ZIP code ${zipCode || 'a new area'}.
-      
-      Family details:
-      - Income bracket: ${income || 'Not specified'}
-      - Number of children: ${children?.length || 0}
-      ${children?.map((child: Child, index: number) => `
-      - Child ${index + 1}:
-        - Age: ${child.age || 'Not specified'}
-        - Gender: ${child.gender || 'Not specified'}
-        - Ethnicity: ${child.ethnicity || 'Not specified'}
-      `).join('') || ''}
-      
-      Please provide the following information in JSON format:
-      1. Township information (name, website, description)
-      2. Top neighborhoods (3 neighborhoods with name, score, description)
-      3. Local school recommendations (3 schools with name, rating, description, website)
-      4. Community program recommendations (3 programs with name, description, website)
-      5. Community demographics (population, median age, ethnic composition, median household income, education level)
-      6. Housing options (3 housing types with type, price range, average size, description)
-      
-      The response should be structured as follows:
-      {
-        "townData": {
-          "name": "...",
-          "website": "...",
-          "description": "..."
-        },
-        "neighborhoodData": {
-          "topNeighborhoods": [
-            {
-              "name": "...",
-              "score": 0.0,
-              "description": "..."
-            },
-            ...
-          ]
-        },
-        "schoolData": [
-          {
-            "name": "...",
-            "rating": 0.0,
-            "description": "...",
-            "website": "..."
-          },
-          ...
-        ],
-        "communityProgramData": [
-          {
-            "name": "...",
-            "description": "...",
-            "website": "..."
-          },
-          ...
-        ],
-        "communityDemographics": {
-          "population": 0,
-          "medianAge": 0.0,
-          "ethnicComposition": [
-            {
-              "group": "...",
-              "percentage": 0
-            },
-            ...
-          ],
-          "medianHousehold": 0,
-          "educationLevel": [
-            {
-              "level": "...",
-              "percentage": 0
-            },
-            ...
-          ]
-        },
-        "housingOptions": [
-          {
-            "type": "...",
-            "priceRange": "...",
-            "averageSize": "...",
-            "description": "..."
-          },
-          ...
-        ]
-      }
-    `;
-
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-1106",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that provides personalized moving recommendations for families based on their location, desired ZIP code, and demographics. Your responses should be accurate, helpful, and formatted as requested."
+          content: `You are an AI assistant that provides personalized recommendations for families looking to 
+                    move to improve their children's future opportunities. Format your response as JSON.`
         },
         {
           role: "user",
-          content: prompt
+          content: `Generate detailed, personalized recommendations for a family considering moving to ZIP code: ${zipCode}.
+                    Additional family information:
+                    - Annual household income: ${income}
+                    - Children: ${JSON.stringify(children)}
+                    
+                    Please include the following in your JSON response:
+                    
+                    1. townData: Information about the town/city in this ZIP code including name, website, and description.
+                    
+                    2. neighborhoodData: Object with a topNeighborhoods array listing top 3 neighborhoods with scores (1-10) and descriptions.
+                    
+                    3. schoolData: Array of school recommendations with:
+                       - name, rating (1-10), description, website
+                       - schoolType: "elementary", "middle", "high", or "all" based on grade levels
+                       - Make sure each school is appropriate for the children's ages:
+                         * Ages 5-10: elementary schools
+                         * Ages 11-13: middle schools
+                         * Ages 14-18: high schools
+                    
+                    4. communityProgramData: Array of recommendations with:
+                       - name, description, website
+                       - ageRanges: Array of ["preschool", "elementary", "middle", "high", "all"]
+                       - genderFocus: "all", "boys", or "girls" if applicable
+                       - tags: Array of relevant categories like "stem", "arts", "sports", etc.
+                       - Make recommendations based on the children's ages, genders, and family income
+                    
+                    5. communityDemographics: Population info, ethnic composition, education levels, etc.
+                    
+                    6. housingOptions: Array with different housing types, price ranges, and sizes
+                       - Include a suitability field (1-5) indicating how suitable each option is for this family's size and income
+                    
+                    Format everything as valid JSON.`
         }
-      ],
-      response_format: { type: "json_object" }
+      ]
     });
 
-    // Extract the content from the response
-    const content = response.choices[0]?.message?.content;
+    // Extract the response content
+    const responseContent = completion.choices[0].message.content;
     
-    if (!content) {
-      return NextResponse.json(
-        { error: 'Failed to generate recommendations' },
-        { status: 500 }
-      );
+    if (!responseContent) {
+      throw new Error('No content in the OpenAI response');
     }
 
-    // Parse the JSON response
-    const recommendations = JSON.parse(content);
-    return NextResponse.json(recommendations);
-  } catch (error: unknown) {
-    console.error('Error generating moving recommendations:', error);
-    
-    // Provide more detailed error information
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStatus = 500;
-    
+    try {
+      // Parse the JSON response
+      const recommendations = JSON.parse(responseContent);
+      return NextResponse.json(recommendations);
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      console.log('Raw response:', responseContent);
+      throw new Error('Failed to parse the AI response as JSON');
+    }
+  } catch (error) {
+    console.error('Error in OpenAI API call:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to generate moving recommendations', 
-        details: errorMessage,
-        timestamp: new Date().toISOString()
-      },
-      { status: errorStatus }
+      { error: 'Failed to generate recommendations', details: error.message },
+      { status: 500 }
     );
   }
 }
