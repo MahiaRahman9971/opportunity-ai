@@ -1071,6 +1071,77 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
             </div>
           )}
           
+          {/* Job Resources Section */}
+          {!loading && zipCode && (
+            <div className="bg-white shadow-md rounded-lg p-6">
+              <h3 className="text-2xl font-semibold mb-6 text-center">Job Resources</h3>
+              <p className="mb-4 text-center">Find employment opportunities in your new area:</p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <a 
+                  href="https://www.indeed.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Indeed
+                </a>
+                <a 
+                  href="https://www.linkedin.com/jobs" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  LinkedIn Jobs
+                </a>
+                <a 
+                  href="https://www.glassdoor.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Glassdoor
+                </a>
+                <a 
+                  href="https://www.usajobs.gov" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  USA Jobs
+                </a>
+              </div>
+              
+              <h4 className="text-xl font-semibold mb-4 text-center">Local Resources</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <a 
+                  href="https://www.careeronestop.org/LocalHelp/AmericanJobCenters/find-american-job-centers.aspx" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  American Job Centers
+                </a>
+                <a 
+                  href="https://www.sba.gov/local-assistance" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Small Business Resources
+                </a>
+                <a 
+                  href="https://www.meetup.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-gray-100 hover:bg-[#6CD9CA] hover:bg-opacity-20 rounded-lg p-4 text-center transition-colors"
+                >
+                  Professional Meetups
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Save Choices Button */}
           {hasRequiredSelections ? (
             <div className="text-center">
