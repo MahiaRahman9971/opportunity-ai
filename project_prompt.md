@@ -42,4 +42,3 @@ The application currently has these main components:
 - `NeighborhoodInsights.tsx`: Detailed neighborhood metrics
 - `ActionPlan.tsx`, `Stay.tsx`, `Move.tsx`: Personalized action planning components
 
-

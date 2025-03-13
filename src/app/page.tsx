@@ -2,7 +2,6 @@
 import { RefObject, useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Welcome from '../components/Welcome'
-import Learn from '../components/Learn'
 import PersonalizationQuiz, { usePersonalization } from '../components/AssessQuiz'
 import OpportunityMap from '../components/OpportunityMap'
 import TakeAction from '@/components/action-plan/ActionPlan'
@@ -86,7 +85,6 @@ function HomeContent({
       <Welcome />
       <PersonalizationQuiz />
       <OpportunityMap address={data.address} />
-      <Learn />
       <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
       <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
       <CommunityConnections />

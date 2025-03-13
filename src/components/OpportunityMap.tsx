@@ -5,12 +5,23 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { geocodeAddress } from '../utils/geocodingUtils';
 import { usePersonalization } from './AssessQuiz';
+import NeighborhoodAnalysis, { NeighborhoodData } from './NeighborhoodAnalysis';
 
 // Helper function to calculate opportunity score based on household income
 const calculateOpportunityScore = (income: number): number => {
-  // Convert income to a score from 1-10
-  // $10k or less = 1, $60k or more = 10
-  return Math.min(10, Math.max(1, Math.round((income - 10000) / 5000)));
+  // Convert income to a score from 1-10 based on the map colors
+  // This matches the fill-color scale used in the map layer
+  if (income <= 10000) return 1;
+  if (income <= 25000) return 2;
+  if (income <= 28000) return 3;
+  if (income <= 30000) return 4;
+  if (income <= 32000) return 5;
+  if (income <= 34000) return 6;
+  if (income <= 36000) return 7;
+  if (income <= 38000) return 8;
+  if (income <= 41000) return 9;
+  if (income <= 45000) return 10;
+  return 10;
 };
 
 // Set Mapbox access token
@@ -27,11 +38,85 @@ interface TractData {
   [key: string]: unknown; // Allow for other properties
 }
 
+// Using NeighborhoodData interface imported from NeighborhoodInsights component
+
 interface OpportunityMapProps {
   address?: string;
   isVisible?: boolean; // Prop to control visibility
   showWrapper?: boolean; // New prop to control whether to show the surrounding UI elements
 }
+
+// This would come from an API in a real application
+const fetchNeighborhoodData = async (address: string): Promise<NeighborhoodData> => {
+  // Simulate API call with mock data
+  // In a real app, this would fetch data from a real API based on the address
+  console.log(`Fetching neighborhood data for: ${address}`);
+  
+  // Mock data - would be replaced with real API data
+  return {
+    schoolQuality: {
+      score: 7.2,
+      description: 'Above average public schools with some specialized programs',
+      details: [
+        'Elementary School Rating: 7.5/10',
+        'Middle School Rating: 6.8/10',
+        'High School Rating: 7.3/10',
+        '82% high school graduation rate',
+        '68% college attendance rate'
+      ]
+    },
+    safety: {
+      score: 8.1,
+      description: 'Low crime rates compared to national averages',
+      details: [
+        'Violent crime: 65% below national average',
+        'Property crime: 42% below national average',
+        'Well-lit streets and active neighborhood watch',
+        'Responsive local police department'
+      ]
+    },
+    healthcare: {
+      score: 6.5,
+      description: 'Adequate healthcare facilities within reasonable distance',
+      details: [
+        '2 hospitals within 10 miles',
+        '5 primary care clinics in the area',
+        'Average wait time for appointments: 12 days',
+        'Limited pediatric specialists locally'
+      ]
+    },
+    amenities: {
+      score: 8.3,
+      description: 'Well-equipped with family-friendly amenities',
+      details: [
+        '5 parks within walking distance',
+        'Public library with children\'s programs',
+        'Community center with youth activities',
+        'Multiple grocery stores and family restaurants'
+      ]
+    },
+    housing: {
+      score: 5.9,
+      description: 'Moderately affordable housing with some options',
+      details: [
+        'Median home price: $375,000',
+        'Average rent (3BR): $2,200/month',
+        'Limited affordable housing programs',
+        'Moderate property tax rates'
+      ]
+    },
+    transportation: {
+      score: 6.7,
+      description: 'Decent public transportation and accessibility',
+      details: [
+        'Bus routes connecting to major areas',
+        'Average commute time: 28 minutes',
+        'Limited late-night transportation options',
+        'Bike-friendly roads in most areas'
+      ]
+    }
+  };
+};
 
 const OpportunityMap: React.FC<OpportunityMapProps> = ({ 
   address, 
@@ -48,6 +133,9 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [userTractId, setUserTractId] = useState<string | null>(null);
   const [userTractGeometry, setUserTractGeometry] = useState<Geometry | null>(null);
+  const [insightsData, setInsightsData] = useState<NeighborhoodData | null>(null);
+  const [loadingInsights, setLoadingInsights] = useState(true);
+  const [loadingAddress, setLoadingAddress] = useState(false);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -573,6 +661,25 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
     }
   }, [mapView, mapStyleLoaded]);
 
+  // Effect to load neighborhood insights data when address changes
+  useEffect(() => {
+    const getNeighborhoodData = async () => {
+      if (address) {
+        setLoadingInsights(true);
+        try {
+          const neighborhoodData = await fetchNeighborhoodData(address);
+          setInsightsData(neighborhoodData);
+        } catch (error) {
+          console.error('Error fetching neighborhood data:', error);
+        } finally {
+          setLoadingInsights(false);
+        }
+      }
+    };
+
+    getNeighborhoodData();
+  }, [address]);
+
   // Effect to handle address changes and zoom to the corresponding census tract
   useEffect(() => {
     const zoomToAddress = async () => {
@@ -580,11 +687,13 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
       
       try {
         console.log('Geocoding address:', address);
+        setLoadingAddress(true);
         
         // Geocode the address to get coordinates
         const coordinates = await geocodeAddress(address);
         if (!coordinates) {
           console.error('Failed to geocode address:', address);
+          setLoadingAddress(false);
           return;
         }
         
@@ -664,6 +773,10 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
                 householdIncome = '$' + Math.round(income).toLocaleString();
                 opportunityScore = calculateOpportunityScore(income).toString();
                 
+                // Debug log to see the income and calculated score
+                console.log('Income:', income, 'Calculated Score:', opportunityScore);
+                console.log('Tract color info:', properties.kfr_rP_gP_p25);
+                
                 // Share the opportunity score with other components through context
                 updateData({
                   opportunityScore: parseInt(opportunityScore),
@@ -701,6 +814,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         });
       } catch (error) {
         console.error('Error processing address:', error);
+      } finally {
+        setLoadingAddress(false);
       }
     };
     
@@ -717,6 +832,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
     );
   }
 
+  // Neighborhood insights are now handled by the NeighborhoodInsights component
+
   // Otherwise, render the full component with surrounding UI
   return (
     <section id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
@@ -725,94 +842,144 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         <p className="text-lg text-gray-600">Explore economic mobility across different regions</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[70%_30%] gap-8">
-        {/* Map Container */}
-        <div className="bg-white rounded-xl shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-[65%_35%] gap-8 md:grid-flow-col auto-rows-fr">
+        {/* Left side - Map Container */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-full">
           <div 
             ref={mapContainer} 
-            className="map-container h-[500px] rounded-t-xl"
+            className="map-container h-[600px] flex-grow relative"
           />
-          <div className="p-4 border-t">
-            {/* Map container footer - empty now that legend has been moved */}
+          
+          {/* Map Legend below the map */}
+          <div className="border-t border-gray-100 py-2">
+            <div className="mx-auto w-[350px]">
+              <div className="flex flex-col">
+                <div className="text-center text-xs font-medium mb-1">Opportunity Score (1-10)</div>
+                <div className="flex h-4 w-full">
+                  <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#d07e59', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#e5a979', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#f4d79e', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#fcfdc1', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#cdddb5', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#9dbda9', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#729d9d', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#4f7f8b', width: '9.1%' }}></div>
+                  <div className="h-full" style={{ backgroundColor: '#34687e', width: '9.1%' }}></div>
+                </div>
+                <div className="flex justify-between text-[10px] w-full mt-1">
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>6</span>
+                  <span>7</span>
+                  <span>8</span>
+                  <span>9</span>
+                  <span>10</span>
+                  <span>10+</span>
+                </div>
+                <div className="flex justify-between text-[10px] font-medium w-full mt-0.5">
+                  <span className="text-[#9b252f]">Low</span>
+                  <span className="flex-grow"></span>
+                  <span className="text-[#34687e]">High</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Opportunity Scores */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-2xl font-semibold mb-4">Opportunity Score</h3>
-          <div className="text-center mb-6">
-            {selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 ? (
-              <>
-                <span 
-                  className="text-5xl font-bold" 
-                  style={{ 
-                    color: '#6CD9CA'
-                  }}
-                >
-                  {calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25)}
-                </span>
-                <span className="text-lg ml-2 text-gray-500">out of 10</span>
-              </>
-            ) : (
-              <>
-                <span className="text-5xl font-bold text-gray-400">--</span>
-                <span className="text-lg ml-2 text-gray-500">out of 10</span>
-              </>
-            )}
-          </div>
-          <div className="text-center mb-4">
-            <span className="text-lg text-gray-700">
-              {selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 
-                ? '$' + Math.round(selectedTract.Household_Income_at_Age_35_rP_gP_p25).toLocaleString() 
-                : '--'}
-            </span>
-            <span className="text-sm ml-1 text-gray-500">household income</span>
-          </div>
+        {/* Right side - Combined Opportunity Score and Neighborhood Insights */}
+        <div className="flex flex-col">
+          {/* Combined Neighborhood Insights with Opportunity Score */}
+          <NeighborhoodAnalysis 
+            insightsData={insightsData} 
+            loadingInsights={loadingInsights}
+            opportunityScore={selectedTract && selectedTract.Household_Income_at_Age_35_rP_gP_p25 ? 
+              calculateOpportunityScore(selectedTract.Household_Income_at_Age_35_rP_gP_p25) : null}
+            loadingOpportunityScore={loadingAddress}
+          />
+        </div>
+      </div>
 
-          <p className="text-sm text-gray-600 mb-4 text-center">
-            {selectedTract ? 'Click on the map to view data for different areas' : 'Click on a census tract to view detailed information'}
-          </p>
+      {/* How can we do better section */}
+      <div className="mt-24 mb-16">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-semibold">How can we do better?</h2>
+        </div>
 
-          {/* Map Legend - Only visible when census tracts view is active */}
-          {mapView === 'census' && (
-            <div className="mt-6 p-2 bg-gray-50 rounded-lg">
-              <h4 className="text-xs font-semibold mb-1">Opportunity Score (1-10)</h4>
-              <div className="flex h-3 w-full">
-                <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#d07e59', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#e5a979', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#f4d79e', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#fcfdc1', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#cdddb5', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#9dbda9', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#729d9d', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#4f7f8b', width: '9.1%' }}></div>
-                <div className="h-full" style={{ backgroundColor: '#34687e', width: '9.1%' }}></div>
-              </div>
-              <div className="flex justify-between text-[10px] mt-1">
-                <span>1</span>
-                <span>2</span>
-                <span>3</span>
-                <span>4</span>
-                <span>5</span>
-                <span>6</span>
-                <span>7</span>
-                <span>8</span>
-                <span>9</span>
-                <span>10</span>
-                <span>10+</span>
-              </div>
-              <div className="flex justify-between text-[10px] mt-1">
-                <span className="text-[#9b252f] font-semibold">bad</span>
-                <span className="flex-grow"></span>
-                <span className="text-[#34687e] font-semibold">good</span>
-              </div>
-              <div className="text-[9px] text-gray-500 mt-1 text-center">
-                Based on household income at age 35
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
+          {/* Live in Good Areas - House icon */}
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 mb-4">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                <path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z" />
+              </svg>
             </div>
-          )}
+            <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
+              1
+            </div>
+            <h3 className="text-base font-semibold mb-1 text-center">Live in Good Areas</h3>
+            <p className="text-sm text-center text-gray-700">Find neighborhoods with better schools, resources, and opportunity networks</p>
+          </div>
+
+          {/* Good Education - School building icon */}
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 mb-4">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                <path d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
+              </svg>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
+              2
+            </div>
+            <h3 className="text-base font-semibold mb-1 text-center">Good Education</h3>
+            <p className="text-sm text-center text-gray-700">Access quality schools, afterschool programs, and educational resources</p>
+          </div>
+
+          {/* Take Advantage - Lightbulb/opportunity icon */}
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 mb-4">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                <path d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z" />
+              </svg>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
+              3
+            </div>
+            <h3 className="text-base font-semibold mb-1 text-center">Take Advantage of Opportunities</h3>
+            <p className="text-sm text-center text-gray-700">Utilize mentorship, community programs, and enrichment activities</p>
+          </div>
+
+          {/* Graduate College - Graduation cap icon */}
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 mb-4">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                <path d="M12,3L1,9L12,15L23,9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
+              </svg>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
+              4
+            </div>
+            <h3 className="text-base font-semibold mb-1 text-center">Graduate College</h3>
+            <p className="text-sm text-center text-gray-700">Higher education significantly improves lifetime earning potential</p>
+          </div>
+
+          {/* Career Success - Briefcase/professional icon */}
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 mb-4">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+                <path d="M20,6C20.58,6 21.05,6.2 21.42,6.59C21.8,7 22,7.45 22,8V19C22,19.55 21.8,20 21.42,20.41C21.05,20.8 20.58,21 20,21H4C3.42,21 2.95,20.8 2.58,20.41C2.2,20 2,19.55 2,19V8C2,7.45 2.2,7 2.58,6.59C2.95,6.2 3.42,6 4,6H8V4C8,3.42 8.2,2.95 8.58,2.58C8.95,2.2 9.42,2 10,2H14C14.58,2 15.05,2.2 15.42,2.58C15.8,2.95 16,3.42 16,4V6H20M4,8V19H20V8H4M14,6V4H10V6H14Z" />
+              </svg>
+            </div>
+            <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
+              5
+            </div>
+            <h3 className="text-base font-semibold mb-1 text-center">Career Success</h3>
+            <p className="text-sm text-center text-gray-700">Build professional skills and networks for long-term financial stability</p>
+          </div>
         </div>
       </div>
     </section>
