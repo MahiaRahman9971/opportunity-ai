@@ -143,7 +143,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/light-v11', // Keep the light style
       center: [-98.5795, 39.8283], // Centered on USA
       zoom: 3,
       projection: 'mercator',
@@ -174,7 +174,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             url: 'mapbox://mahiar.bdsxlspn'
           });
           
-          // Make all text labels black
+          // Handle text labels - hide small street labels and style others
           try {
             // Get the map style
             const style = map.current.getStyle();
@@ -182,15 +182,19 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
               // Loop through all layers and modify text layers
               for (let i = 0; i < style.layers.length; i++) {
                 const layer = style.layers[i];
+                
                 // Check if this is a symbol layer (text labels)
                 if (layer && layer.type === 'symbol' && layer.id) {
-                  // This is a text label layer - make text black
-                  map.current.setPaintProperty(layer.id, 'text-color', '#000000');
-                  // Also increase text opacity for better visibility
-                  map.current.setPaintProperty(layer.id, 'text-opacity', 1);
-                  // Optionally add text halo for better contrast
-                  map.current.setPaintProperty(layer.id, 'text-halo-color', '#ffffff');
-                  map.current.setPaintProperty(layer.id, 'text-halo-width', 1.5);
+                  // Hide street name labels
+                  if (layer.id.includes('road-label') || layer.id.includes('street-label')) {
+                    map.current.setLayoutProperty(layer.id, 'visibility', 'none');
+                  } else {
+                    // For other labels (cities, neighborhoods, etc.) - make them black with good contrast
+                    map.current.setPaintProperty(layer.id, 'text-color', '#000000');
+                    map.current.setPaintProperty(layer.id, 'text-opacity', 1);
+                    map.current.setPaintProperty(layer.id, 'text-halo-color', '#ffffff');
+                    map.current.setPaintProperty(layer.id, 'text-halo-width', 1.5);
+                  }
                 }
               }
             }
@@ -258,59 +262,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         }
       }, 'poi-label');
       
-      // Add background layer for streets
-      map.current.addLayer({
-        id: 'streets-background',
-        type: 'line',
-        source: 'mapbox-streets',
-        'source-layer': 'road',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-          'visibility': 'visible'
-        },
-        paint: {
-          'line-color': '#ffffff',
-          'line-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            8, 0.25,
-            10, 0.4,
-            12, 0.6,
-            15, 0.8,
-            20, 1.2
-          ],
-          'line-opacity': 0.8
-        }
-      });
-      
-      // Add regular street layer
-      map.current.addLayer({
-        id: 'streets-layer',
-        type: 'line',
-        source: 'mapbox-streets',
-        'source-layer': 'road',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-          'visibility': 'visible'
-        },
-        paint: {
-          'line-color': '#f7f7f7',
-          'line-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            8, 0.25,
-            10, 0.5,
-            12, 0.75,
-            15, 1,
-            20, 1.5
-          ],
-          'line-opacity': 0.1
-        }
-      });
+      // Detailed street layers have been removed
       
       // Add water bodies layer (white overlay)
       map.current.addLayer({
@@ -327,13 +279,13 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         }
       });
       
-      // Add major streets background
+      // Add only major highways for orientation
       map.current.addLayer({
-        id: 'major-streets-background',
+        id: 'major-highways-layer',
         type: 'line',
         source: 'mapbox-streets',
         'source-layer': 'road',
-        filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary'],
+        filter: ['in', 'class', 'motorway', 'trunk'],  // Only show major highways
         layout: {
           'line-join': 'round',
           'line-cap': 'round',
@@ -345,45 +297,17 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             'interpolate',
             ['linear'],
             ['zoom'],
-            8, 0.4,
-            10, 0.6,
-            12, 0.8,
-            15, 1.2,
-            20, 1.8
-          ],
-          'line-opacity': 0.9
-        }
-      });
-      
-      // Add major streets layer
-      map.current.addLayer({
-        id: 'major-streets-layer',
-        type: 'line',
-        source: 'mapbox-streets',
-        'source-layer': 'road',
-        filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary'],
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-          'visibility': 'visible'
-        },
-        paint: {
-          'line-color': '#f0f0f0',
-          'line-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
             8, 0.5,
             10, 0.75,
             12, 1,
             15, 1.5,
-            20, 2.5
+            20, 2
           ],
-          'line-opacity': 0.8
+          'line-opacity': 0.4  // Reduced opacity
         }
       });
       
-      // Census tract outline
+      // Census tract outline - enhanced for better visibility
       map.current.addLayer({
         id: 'census-tracts-outline',
         type: 'line',
@@ -394,7 +318,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         },
         paint: {
           'line-color': '#000000',
-          'line-width': 0.5
+          'line-width': 0.75,  // Slightly thicker lines
+          'line-opacity': 0.7   // Slightly transparent
         }
       });
 
@@ -546,16 +471,10 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         // Log properties to help debug
         console.log('Feature properties for popup:', properties);
         
-        // Get property values with fallbacks
-        const geoid = properties.GEOID || properties.GEO_ID || 'N/A';
-        
-        // Format household income
-        let householdIncome = 'N/A';
-        let opportunityScore = 'N/A';
+        // Calculate opportunity score and update context
         if (properties.Household_Income_at_Age_35_rP_gP_p25) {
           const income = properties.Household_Income_at_Age_35_rP_gP_p25;
-          householdIncome = '$' + Math.round(income).toLocaleString();
-          opportunityScore = calculateOpportunityScore(income).toString();
+          const opportunityScore = calculateOpportunityScore(income).toString();
           
           // Share the opportunity score with other components through context
           // This ensures the Learn component gets updated when a new tract is clicked
@@ -565,31 +484,10 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
           });
         }
         
-        const county = properties.county || properties.COUNTY || 'N/A';
-        const state = properties.state || properties.STATE || 'N/A';
-        
-        // Create popup with info
+        // Remove any existing popup
         if (popupRef.current) {
           popupRef.current.remove();
-        }
-        
-        popupRef.current = new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(`
-            <div class="font-sans p-1">
-              <h4 class="font-bold text-sm">Census Tract ${geoid}</h4>
-              <p class="text-xs">
-                Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
-              </p>
-              <p class="text-xs">Household Income: ${householdIncome}</p>
-              <p class="text-xs">County: ${county}</p>
-              <p class="text-xs">State: ${state}</p>
-            </div>
-          `);
-          
-        // Add null check before calling addTo
-        if (map.current) {
-          popupRef.current.addTo(map.current);
+          popupRef.current = null;
         }
       }
     };
@@ -799,17 +697,10 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
               // Set the selected tract to show its details
               setSelectedTract(properties);
               
-              // Create a popup with the tract info
-              if (popupRef.current) {
-                popupRef.current.remove();
-              }
-              
-              // Format household income
-              let householdIncome = 'N/A';
+              // Format household income and calculate opportunity score
               let opportunityScore = 'N/A';
               if (properties.Household_Income_at_Age_35_rP_gP_p25) {
                 const income = properties.Household_Income_at_Age_35_rP_gP_p25;
-                householdIncome = '$' + Math.round(income).toLocaleString();
                 opportunityScore = calculateOpportunityScore(income).toString();
                 
                 // Debug log to see the income and calculated score
@@ -824,27 +715,10 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
                 });
               }
               
-              const county = properties.county || properties.COUNTY || 'N/A';
-              const state = properties.state || properties.STATE || 'N/A';
-              
-              popupRef.current = new mapboxgl.Popup()
-                .setLngLat([coordinates.lng, coordinates.lat])
-                .setHTML(`
-                  <div class="font-sans p-1">
-                    <h4 class="font-bold text-sm">Your Location</h4>
-                    <p class="text-xs">Census Tract ${tractId}</p>
-                    <p class="text-xs">
-                      Opportunity Score: <span style="font-weight: bold;">${opportunityScore}/10</span>
-                    </p>
-                    <p class="text-xs">Household Income: ${householdIncome}</p>
-                    <p class="text-xs">County: ${county}</p>
-                    <p class="text-xs">State: ${state}</p>
-                  </div>
-                `);
-                
-              // Add null check before calling addTo
-              if (map.current) {
-                popupRef.current.addTo(map.current);
+              // Remove any existing popup
+              if (popupRef.current) {
+                popupRef.current.remove();
+                popupRef.current = null;
               }
             }
           } else {

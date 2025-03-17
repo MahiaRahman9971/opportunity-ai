@@ -23,7 +23,26 @@ const Welcome = () => {
           <p className="text-xl font-semibold">one step at a time</p>
         </div>
         
-        <div className="text-primary text-4xl mt-6 animate-bounce">
+        <div 
+          className="text-primary text-4xl mt-6 animate-bounce cursor-pointer hover:text-primary-dark transition-colors"
+          onClick={() => {
+            const quizSection = document.getElementById('quiz-section');
+            if (quizSection) {
+              quizSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+          aria-label="Scroll to assessment quiz"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              const quizSection = document.getElementById('quiz-section');
+              if (quizSection) {
+                quizSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }
+          }}
+        >
           <FaChevronDown className="mx-auto" />
         </div>
       </div>

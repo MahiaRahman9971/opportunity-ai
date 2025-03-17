@@ -9,6 +9,7 @@ module.exports = {
     extend: {
       colors: {
         primary: '#6CD9CA',
+        'primary-dark': '#4eb8a9',
         accent1: '#9b252f',
         accent2: '#b65441',
         accent3: '#d07e59',
@@ -25,7 +26,18 @@ module.exports = {
         nunito: ['var(--font-nunito)', 'sans-serif'],
       },
       animation: {
-        fadeIn: 'fadeIn 1s ease-in forwards',
+        fadeIn: 'fadeIn 0.5s ease-in forwards',
+        bounce: 'bounce 1s infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
+        },
+        bounce: {
+          '0%, 100%': { transform: 'translateY(-5%)' },
+          '50%': { transform: 'translateY(0)' }
+        }
       },
     },
   },

@@ -18,6 +18,16 @@ interface StoredMessage {
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const [showPopup, setShowPopup] = useState(false)
+  
+  // Show popup after a delay when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowPopup(true)
+    }, 3000) // Show popup after 3 seconds
+    
+    return () => clearTimeout(timer)
+  }, [])
   const [messages, setMessages] = useState<Message[]>(() => {
     // Try to load messages from localStorage
     if (typeof window !== 'undefined') {
@@ -73,6 +83,7 @@ const ChatWidget: React.FC = () => {
 
   const toggleChat = () => {
     setIsOpen(prev => !prev)
+    setShowPopup(false) // Hide popup when chat is toggled
   }
   
   // Clear chat history
@@ -166,14 +177,36 @@ const ChatWidget: React.FC = () => {
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
-      {/* Chat Button */}
-      <button
-        onClick={toggleChat}
-        className="bg-primary hover:bg-primary-dark text-white p-4 rounded-full shadow-lg flex items-center justify-center"
-        aria-label={isOpen ? "Close chat" : "Open chat"}
-      >
-        {isOpen ? <FaTimes size={20} /> : <FaComments size={20} />}
-      </button>
+      {/* Chat Button with Popup */}
+      <div className="relative">
+        {/* Popup */}
+        {showPopup && !isOpen && (
+          <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-md px-4 py-3 mb-2 animate-fadeIn">
+            <div className="relative">
+              {/* Close button for popup */}
+              <button 
+                onClick={() => setShowPopup(false)}
+                className="absolute -top-2 -right-2 bg-gray-200 rounded-full p-1 text-gray-600 hover:bg-gray-300"
+                aria-label="Close popup"
+              >
+                <FaTimes size={12} />
+              </button>
+              
+              <p className="text-gray-800 font-medium whitespace-nowrap">Chat with me! 👋</p>
+              <div className="absolute -bottom-2 right-4 w-0 h-0 border-l-8 border-l-transparent border-t-8 border-t-white border-r-8 border-r-transparent"></div>
+            </div>
+          </div>
+        )}
+        
+        {/* Chat Button */}
+        <button
+          onClick={toggleChat}
+          className="bg-primary hover:bg-primary-dark text-white p-4 rounded-full shadow-lg flex items-center justify-center"
+          aria-label={isOpen ? "Close chat" : "Open chat"}
+        >
+          {isOpen ? <FaTimes size={20} /> : <FaComments size={20} />}
+        </button>
+      </div>
 
       {/* Chat Window */}
       {isOpen && (

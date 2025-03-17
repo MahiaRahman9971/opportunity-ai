@@ -74,8 +74,8 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
               ) : opportunityScore !== null ? (
                 <div className="flex items-center">
                   <div className="relative mr-4">
-                    <div className="absolute w-20 h-20 bg-primary bg-opacity-10 rounded-full animate-pulse"></div>
-                    <div className="relative flex flex-col items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg border-4 border-primary z-10">
+                    <div className="absolute w-24 h-24 bg-primary bg-opacity-10 rounded-full animate-pulse"></div>
+                    <div className="relative flex flex-col items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg border-4 border-primary z-10">
                       <span 
                         className="text-2xl font-bold" 
                         style={{ color: '#6CD9CA' }}
@@ -95,7 +95,6 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
                   <div className="relative mr-4">
                     <div className="relative flex flex-col items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg border-4 border-gray-200 z-10">
                       <span className="text-2xl font-bold text-gray-300">--</span>
-                      <span className="text-xs font-medium text-gray-400">out of 10</span>
                     </div>
                   </div>
                   <div className="flex-grow">
