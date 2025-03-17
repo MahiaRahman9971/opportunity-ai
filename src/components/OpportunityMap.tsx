@@ -174,6 +174,30 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             url: 'mapbox://mahiar.bdsxlspn'
           });
           
+          // Make all text labels black
+          try {
+            // Get the map style
+            const style = map.current.getStyle();
+            if (style && style.layers) {
+              // Loop through all layers and modify text layers
+              for (let i = 0; i < style.layers.length; i++) {
+                const layer = style.layers[i];
+                // Check if this is a symbol layer (text labels)
+                if (layer && layer.type === 'symbol' && layer.id) {
+                  // This is a text label layer - make text black
+                  map.current.setPaintProperty(layer.id, 'text-color', '#000000');
+                  // Also increase text opacity for better visibility
+                  map.current.setPaintProperty(layer.id, 'text-opacity', 1);
+                  // Optionally add text halo for better contrast
+                  map.current.setPaintProperty(layer.id, 'text-halo-color', '#ffffff');
+                  map.current.setPaintProperty(layer.id, 'text-halo-width', 1.5);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error updating text styles:', error);
+          }
+          
           // Add layers
           addMapLayers('ct_tract_kfr_rP_gP_p25-8tx22d');
         } catch (error) {
@@ -284,7 +308,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             15, 1,
             20, 1.5
           ],
-          'line-opacity': 0.7
+          'line-opacity': 0.1
         }
       });
       
@@ -897,9 +921,9 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
                   <span>10+</span>
                 </div>
                 <div className="flex justify-between text-[10px] font-medium w-full mt-0.5">
-                  <span className="text-[#9b252f]">Low</span>
+                  <span className="text-[#9b252f]">Bad</span>
                   <span className="flex-grow"></span>
-                  <span className="text-[#34687e]">High</span>
+                  <span className="text-[#34687e]">Good</span>
                 </div>
               </div>
             </div>

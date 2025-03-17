@@ -121,24 +121,29 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
             <div>
               <h4 className="text-lg font-semibold mb-4">Neighborhood Factors</h4>
               <div>
-                {categories.map((category) => (
-                  <div key={category.id} className="mb-5">
-                    <div className="flex items-center mb-1">
-                      <div className="text-primary mr-2">{category.icon}</div>
-                      <span className="text-sm font-medium">{category.name}</span>
-                      <span className="ml-auto text-sm font-semibold">{insightsData[category.id].score}/10</span>
+                {categories.map((category) => {
+                  const score = insightsData[category.id].score;
+                  const filledIcons = Math.round(score);
+                  
+                  return (
+                    <div key={category.id} className="mb-5">
+                      <div className="flex items-center mb-1">
+                        <span className="text-sm font-medium">{category.name}</span>
+                        <span className="ml-auto text-sm font-semibold">{Math.round(score)}/10</span>
+                      </div>
+                      <div className="flex space-x-1">
+                        {[...Array(10)].map((_, index) => (
+                          <div 
+                            key={index} 
+                            className={`${index < filledIcons ? 'text-primary' : 'text-gray-200'}`}
+                          >
+                            {category.icon}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="h-4 w-full bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full" 
-                        style={{
-                          width: `${insightsData[category.id].score * 10}%`,
-                          backgroundColor: '#6CD9CA'
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : null}
