@@ -239,17 +239,17 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
 
   if (!selectedAction || !savedChoices) {
     return (
-      <section id="next-steps" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
+      <div id="next-steps" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Next Steps</h1>
           <p className="text-xl">Complete the previous sections to see your personalized action plan</p>
         </div>
-      </section>
+      </div>
     )
   }
 
   return (
-    <section id="next-steps" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
+    <div id="next-steps" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Your Next Steps</h1>
         <p className="text-xl">
@@ -373,7 +373,7 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
           ))}
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 

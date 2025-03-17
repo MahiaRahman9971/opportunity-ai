@@ -54,7 +54,7 @@ function Home() {
     <>
       <Navbar progressBarRef={progressBarRef as RefObject<HTMLDivElement>} />
       
-      <main className="container">
+      <main>
         <PersonalizationProvider>
           <HomeContent 
             selectedAction={selectedAction} 
@@ -82,12 +82,41 @@ function HomeContent({
   
   return (
     <>
-      <Welcome />
-      <PersonalizationQuiz />
-      <OpportunityMap address={data.address} />
-      <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
-      <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
-      <CommunityConnections />
+      <section className="bg-white w-full">
+        <div className="container mx-auto">
+          <Welcome />
+        </div>
+      </section>
+      
+      <section className="bg-gray-100 w-full">
+        <div className="container mx-auto">
+          <PersonalizationQuiz />
+        </div>
+      </section>
+      
+      <section className="bg-white w-full">
+        <div className="container mx-auto">
+          <OpportunityMap address={data.address} />
+        </div>
+      </section>
+      
+      <section className="bg-gray-100 w-full">
+        <div className="container mx-auto">
+          <TakeAction onSaveActionAndChoices={handleActionAndChoicesSave} />
+        </div>
+      </section>
+      
+      <section className="bg-white w-full">
+        <div className="container mx-auto">
+          <NextSteps selectedAction={selectedAction} savedChoices={savedChoices} />
+        </div>
+      </section>
+      
+      <section className="bg-gray-100 w-full">
+        <div className="container mx-auto">
+          <CommunityConnections />
+        </div>
+      </section>
     </>
   );
 }

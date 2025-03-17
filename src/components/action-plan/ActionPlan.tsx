@@ -37,7 +37,7 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
   }
   
   return (
-    <section 
+    <div 
       id="take-action" 
       className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20"
     >
@@ -52,7 +52,7 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
           {/* Stay & Improve Option */}
           <div 
             className={`
-              w-full max-w-md p-6 rounded-lg shadow-md cursor-pointer transition-all duration-300
+              w-full max-w-md p-6 rounded-lg shadow-md cursor-pointer transition-all duration-300 bg-white
               ${selectedAction === 'stay' 
                 ? 'border-4 border-[#6CD9CA] scale-105' 
                 : 'hover:shadow-xl hover:bg-[#6CD9CA] hover:bg-opacity-10'}
@@ -82,7 +82,7 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
           {/* Explore New Areas Option */}
           <div 
             className={`
-              w-full max-w-md p-6 rounded-lg shadow-md cursor-pointer transition-all duration-300
+              w-full max-w-md p-6 rounded-lg shadow-md cursor-pointer transition-all duration-300 bg-white
               ${selectedAction === 'move' 
                 ? 'border-4 border-[#6CD9CA] scale-105' 
                 : 'hover:shadow-xl hover:bg-[#6CD9CA] hover:bg-opacity-10'}
@@ -138,7 +138,7 @@ const TakeAction: React.FC<TakeActionProps> = ({ onSaveActionAndChoices }) => {
           </div>
         )}
       </div>
-    </section>
+    </div>
   )
 }
 

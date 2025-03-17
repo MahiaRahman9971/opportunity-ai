@@ -17,7 +17,6 @@ export default function Navbar({ progressBarRef }: NavbarProps) {
             <Link href="#welcome" className="hover:text-primary transition-colors">Welcome</Link>
             <Link href="#quiz-section" className="hover:text-primary transition-colors">Assess</Link>
             <Link href="#opportunity-map" className="hover:text-primary transition-colors">Opportunity Map</Link>
-            <Link href="#learn" className="hover:text-primary transition-colors">Learn</Link>
             <Link href="#take-action" className="hover:text-primary transition-colors">Take Action</Link>
             <Link href="#next-steps" className="hover:text-primary transition-colors">Next Steps</Link>
             <Link href="#community-connections" className="hover:text-primary transition-colors">Community</Link>

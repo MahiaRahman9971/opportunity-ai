@@ -151,7 +151,7 @@ const AssessYourCommunity = () => {
   };
 
   return (
-    <section id="quiz-section" className="min-h-screen px-4 py-16 max-w-4xl mx-auto scroll-mt-28">
+    <div id="quiz-section" className="min-h-screen px-4 py-16 max-w-4xl mx-auto scroll-mt-28">
       <div className="bg-white rounded-xl shadow-lg p-8 md:p-10">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-2">Assess Your Community</h2>
@@ -374,7 +374,7 @@ const AssessYourCommunity = () => {
           </div>
         </form>
       </div>
-    </section>
+    </div>
   );
 };
 

@@ -4,7 +4,7 @@ import { FaChevronDown } from 'react-icons/fa'
 
 const Welcome = () => {
   return (
-    <section id="welcome" className="min-h-screen flex flex-col items-center justify-center text-center px-4 pt-20 pb-10">
+    <div id="welcome" className="min-h-screen flex flex-col items-center justify-center text-center px-4 pt-20 pb-10">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-5xl md:text-7xl font-bold text-primary mb-8">Building Your Child&apos;s Future</h1>
         
@@ -46,7 +46,7 @@ const Welcome = () => {
           <FaChevronDown className="mx-auto" />
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
