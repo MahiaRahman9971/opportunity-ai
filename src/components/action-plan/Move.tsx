@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { School, Home } from 'lucide-react'
 import { useAssessment, AssessData } from '../AssessQuiz'
 import { MapOnly } from '../OpportunityMap'
+import { useTranslations, useLocale } from 'next-intl'
 
 // Define types for the recommendations data
 type TownData = {
@@ -51,6 +52,7 @@ type EducationLevel = {
 type ReligiousGroup = {
   religion: string;
   percentage: number;
+  displayName?: string;
 };
 
 type CommunityDemographics = {
@@ -404,6 +406,7 @@ const generatePersonalizedAdvice = (assessmentData: AssessData | undefined): str
 };
 
 const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
+  const t = useTranslations('move');
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
   const [selectedCommunityPrograms, setSelectedCommunityPrograms] = useState<string[]>([]);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null);
@@ -484,7 +487,8 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           address,
           zipCode,
           income,
-          children
+          children,
+          locale
         })
       });
       
@@ -810,7 +814,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                         <div className="flex justify-between items-center">
                           <h4 className="text-xl font-semibold">{neighborhood.name}</h4>
                           <div className="flex items-center">
-                            <span className="text-sm mr-2">Opportunity Score:</span>
+                            <span className="text-sm mr-2">{t('opportunityScore')}:</span>
                             <span className="bg-[#6CD9CA] text-white font-bold px-2 py-1 rounded-md">{neighborhood.score}/10</span>
                           </div>
                         </div>
@@ -821,7 +825,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
 
                   {selectedNeighborhood && (
                     <p className="mt-4 text-lg font-semibold">
-                      {selectedNeighborhood} looks like a great neighborhood for your family!
+                      {t('neighborhoodSelected', {neighborhood: selectedNeighborhood})}
                     </p>
                   )}
                 </div>
@@ -832,8 +836,8 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           {/* Local Schools */}
           {!loading && filteredSchools.length > 0 && (
             <div className="bg-white shadow-md rounded-lg p-6">
-              <h3 className="text-2xl font-semibold mb-4">Local Schools</h3>
-              <p className="mb-1">Select a school that would be a good option:</p>
+              <h3 className="text-2xl font-semibold mb-4">{t('localSchools')}</h3>
+              <p className="mb-1">{t('selectSchool')}</p>
               <p className="mb-4 text-sm text-gray-600">{getSchoolLevelMessage(userData)}</p>
               
               <div className="space-y-4">
@@ -953,12 +957,16 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           {/* Community Demographics */}
           {!loading && recommendations?.communityDemographics && (
             <div className="bg-white shadow-md rounded-lg p-6">
-              <h3 className="text-2xl font-semibold mb-6 text-center">Community Demographics</h3>
+              <h3 className="text-2xl font-semibold mb-6 text-center">{t('communityDemographics')}</h3>
               
               {/* ZIP Code Header */}
               {zipCode && (
                 <h4 className="text-xl text-center mb-8">
-                  In {zipCode}, {recommendations.communityDemographics.ethnicComposition.sort((a, b) => b.percentage - a.percentage)[0].group} make up the largest group at {recommendations.communityDemographics.ethnicComposition.sort((a, b) => b.percentage - a.percentage)[0].percentage}% of the population.
+                  {t('inZipCode', {
+                    zipCode,
+                    group: recommendations.communityDemographics.ethnicComposition.sort((a, b) => b.percentage - a.percentage)[0].group,
+                    percentage: recommendations.communityDemographics.ethnicComposition.sort((a, b) => b.percentage - a.percentage)[0].percentage
+                  })}
                 </h4>
               )}
               
@@ -1010,7 +1018,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               {/* Religious Composition */}
               {Array.isArray(recommendations.communityDemographics.religiousComposition) && (
                 <div className="mt-8 mb-10">
-                  <h4 className="text-xl font-semibold mb-6 text-center">Religious Composition</h4>
+                  <h4 className="text-xl font-semibold mb-6 text-center">{t('religiousComposition')}</h4>
                   
                   <div className="flex flex-wrap justify-center gap-4 mb-6">
                     {recommendations.communityDemographics.religiousComposition
@@ -1025,26 +1033,32 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                             case "christian": 
                               iconColor = "text-[#34687e]"; // accent11
                               iconPath = "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z";
+                              religionData.displayName = t('christian');
                               break;
                             case "jewish": 
                               iconColor = "text-[#4f7f8b]"; // accent10
+                              religionData.displayName = t('jewish');
                               iconPath = "M12 22l-3.5-6.5L2 12l6.5-3.5L12 2l3.5 6.5L22 12l-6.5 3.5L12 22z";
                               break;
                             case "muslim": 
                               iconColor = "text-[#729d9d]"; // accent9
                               iconPath = "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-18a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zm-3-6a3 3 0 106 0 3 3 0 00-6 0z";
+                              religionData.displayName = t('muslim');
                               break;
                             case "hindu": 
                               iconColor = "text-[#d07e59]"; // accent3
                               iconPath = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7v-2z";
+                              religionData.displayName = t('hindu');
                               break;
                             case "non-religious": 
                               iconColor = "text-[#9dbda9]"; // accent8
                               iconPath = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z";
+                              religionData.displayName = t('nonReligious');
                               break;
                             default: 
                               iconColor = "text-[#b65441]"; // accent2
                               iconPath = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z";
+                              religionData.displayName = religionData.religion;
                           }
                         }
                         
@@ -1056,7 +1070,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                               </svg>
                             </div>
                             <div className="text-center">
-                              <div className="font-medium">{religionData.religion}</div>
+                              <div className="font-medium">{religionData.displayName || religionData.religion}</div>
                               <div className="text-xl font-bold">{religionData.percentage}%</div>
                             </div>
                           </div>
@@ -1072,32 +1086,51 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               {/* Additional Demographics */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="text-xl font-semibold mb-4">Population Overview</h4>
+                  <h4 className="text-xl font-semibold mb-4">{t('populationOverview')}</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Total Population:</span>
+                      <span>{t('totalPopulation')}:</span>
                       <span>{formatNumber(recommendations.communityDemographics.population)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Median Age:</span>
+                      <span>{t('medianAge')}:</span>
                       <span>{recommendations.communityDemographics.medianAge || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Median Household Income:</span>
+                      <span>{t('medianHouseholdIncome')}:</span>
                       <span>${formatNumber(recommendations.communityDemographics.medianHousehold)}</span>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xl font-semibold mb-4">Education Levels</h4>
+                  <h4 className="text-xl font-semibold mb-4">{t('educationLevels')}</h4>
                   <div className="space-y-2">
                     {Array.isArray(recommendations.communityDemographics.educationLevel) && 
-                      recommendations.communityDemographics.educationLevel.map((level) => (
-                        <div key={level.level} className="flex justify-between">
-                          <span>{level.level}</span>
-                          <span>{level.percentage}%</span>
-                        </div>
-                      ))}
+                      recommendations.communityDemographics.educationLevel.map((level) => {
+                        let translationKey = '';
+                        switch(level.level) {
+                          case "Bachelor's or higher":
+                            translationKey = 'bachelorsOrHigher';
+                            break;
+                          case "Some College":
+                            translationKey = 'someCollege';
+                            break;
+                          case "High School":
+                            translationKey = 'highSchool';
+                            break;
+                          case "Less than High School":
+                            translationKey = 'lessThanHighSchool';
+                            break;
+                          default:
+                            translationKey = '';
+                        }
+                        return (
+                          <div key={level.level} className="flex justify-between">
+                            <span>{translationKey ? t(translationKey) : level.level}</span>
+                            <span>{level.percentage}%</span>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               </div>
@@ -1107,8 +1140,8 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           {/* Housing Options - UPDATED WITH SELECTION */}
           {!loading && filteredHousingOptions.length > 0 && (
             <div className="bg-white shadow-md rounded-lg p-6">
-              <h3 className="text-2xl font-semibold mb-6 text-center">Housing Options</h3>
-              <p className="mb-4 text-center">Select a housing type you&apos;re interested in:</p>
+              <h3 className="text-2xl font-semibold mb-6 text-center">{t('housingOptions')}</h3>
+              <p className="mb-4 text-center">{t('selectHousingType')}</p>
               
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 {filteredHousingOptions.map((option) => (

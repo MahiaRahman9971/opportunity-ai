@@ -1,6 +1,7 @@
 'use client'
 import { useState, createContext, useContext, ReactNode } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 
 // Define all the types we need
 type ChildInfo = {
@@ -72,6 +73,7 @@ export { AssessProvider as PersonalizationProvider };
 
 const AssessYourCommunity = () => {
   const { setFullData } = useAssessment();
+  const t = useTranslations('assessment');
   
   // Initialize formData with ALL fields, including address
   const [formData, setFormData] = useState<AssessData>({
@@ -154,22 +156,22 @@ const AssessYourCommunity = () => {
     <div id="quiz-section" className="min-h-screen px-4 py-16 max-w-4xl mx-auto scroll-mt-28">
       <div className="bg-white rounded-xl shadow-lg p-8 md:p-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-2">Assess Your Community</h2>
-          <p className="text-lg text-gray-600">Help us provide personalized guidance for your family&apos;s future</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-2">{t('title')}</h2>
+          <p className="text-lg text-gray-600">{t('subtitle')}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Parent Information Section */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <h3 className="text-xl font-semibold">Parent Information</h3>
+              <h3 className="text-xl font-semibold">{t('parentInfo')}</h3>
               <div className="flex-grow ml-4 h-px bg-gray-200"></div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label htmlFor="address" className="block text-sm font-medium">
-                  Address<span className="text-red-500">*</span>
+                  {t('address')}<span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -177,7 +179,7 @@ const AssessYourCommunity = () => {
                   name="address"
                   value={formData.address || ''}
                   onChange={handleParentInfoChange}
-                  placeholder="Enter your full address"
+                  placeholder={t('addressPlaceholder')}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
@@ -185,7 +187,7 @@ const AssessYourCommunity = () => {
               
               <div className="space-y-2">
                 <label htmlFor="income" className="block text-sm font-medium">
-                  Annual Household Income<span className="text-red-500">*</span>
+                  {t('income')}<span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -196,12 +198,12 @@ const AssessYourCommunity = () => {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="">Select income range</option>
-                    <option value="<25k">Less than $25,000</option>
-                    <option value="25-50k">$25,000 - $50,000</option>
-                    <option value="50-75k">$50,000 - $75,000</option>
-                    <option value="75-100k">$75,000 - $100,000</option>
-                    <option value=">100k">More than $100,000</option>
+                    <option value="">{t('selectIncome')}</option>
+                    <option value="<25k">{t('incomeLess25k')}</option>
+                    <option value="25-50k">{t('income25to50k')}</option>
+                    <option value="50-75k">{t('income50to75k')}</option>
+                    <option value="75-100k">{t('income75to100k')}</option>
+                    <option value=">100k">{t('incomeMore100k')}</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                     <FaChevronDown className="text-gray-400" />
@@ -211,7 +213,7 @@ const AssessYourCommunity = () => {
               
               <div className="space-y-2">
                 <label htmlFor="country" className="block text-sm font-medium">
-                  Country of Origin (Optional)
+                  {t('country')}
                 </label>
                 <input
                   type="text"
@@ -219,7 +221,7 @@ const AssessYourCommunity = () => {
                   name="country"
                   value={formData.country || ''}
                   onChange={handleParentInfoChange}
-                  placeholder="Enter country"
+                  placeholder={t('countryPlaceholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -229,17 +231,17 @@ const AssessYourCommunity = () => {
           {/* Child Information Section */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <h3 className="text-xl font-semibold">Child Information</h3>
+              <h3 className="text-xl font-semibold">{t('childInfo')}</h3>
               <div className="flex-grow ml-4 h-px bg-gray-200"></div>
             </div>
             
             {formData.children.map((child, index) => (
               <div key={index} className="space-y-6">
-                <h4 className="font-medium">Child {index + 1}</h4>
+                <h4 className="font-medium">{t('child')} {index + 1}</h4>
                 
                 <div className="space-y-2">
                   <label htmlFor={`child${index}-name`} className="block text-sm font-medium">
-                    Name<span className="text-red-500">*</span>
+                    {t('childName')}<span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -247,7 +249,7 @@ const AssessYourCommunity = () => {
                     name={`child-name`}
                     value={child.name || ''}
                     onChange={(e) => handleChildInfoChange(index, e)}
-                    placeholder="Enter child's name"
+                    placeholder={t('childNamePlaceholder')}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
@@ -256,7 +258,7 @@ const AssessYourCommunity = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label htmlFor={`child${index}-gender`} className="block text-sm font-medium">
-                      Gender<span className="text-red-500">*</span>
+                      {t('gender')}<span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <select
@@ -267,9 +269,9 @@ const AssessYourCommunity = () => {
                         required
                         className="w-full px-4 py-2 border border-gray-300 rounded-md appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       >
-                        <option value="">Select gender</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
+                        <option value="">{t('selectGender')}</option>
+                        <option value="M">{t('male')}</option>
+                        <option value="F">{t('female')}</option>
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                         <FaChevronDown className="text-gray-400" />
@@ -279,7 +281,7 @@ const AssessYourCommunity = () => {
                   
                   <div className="space-y-2">
                     <label htmlFor={`child${index}-age`} className="block text-sm font-medium">
-                      Age<span className="text-red-500">*</span>
+                      {t('age')}<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -287,7 +289,7 @@ const AssessYourCommunity = () => {
                       name={`child-age`}
                       value={child.age || ''}
                       onChange={(e) => handleChildInfoChange(index, e)}
-                      placeholder="Enter age"
+                      placeholder={t('agePlaceholder')}
                       min="0"
                       max="18"
                       required
@@ -297,7 +299,7 @@ const AssessYourCommunity = () => {
                   
                   <div className="space-y-2">
                     <label htmlFor={`child${index}-ethnicity`} className="block text-sm font-medium">
-                      Ethnicity<span className="text-red-500">*</span>
+                      {t('ethnicity')}<span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <select
@@ -308,12 +310,12 @@ const AssessYourCommunity = () => {
                         required
                         className="w-full px-4 py-2 border border-gray-300 rounded-md appearance-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       >
-                        <option value="">Select ethnicity</option>
-                        <option value="W">White</option>
-                        <option value="B">Black</option>
-                        <option value="H">Hispanic</option>
-                        <option value="A">Asian</option>
-                        <option value="NA">Native American</option>
+                        <option value="">{t('selectEthnicity')}</option>
+                        <option value="W">{t('white')}</option>
+                        <option value="B">{t('black')}</option>
+                        <option value="H">{t('hispanic')}</option>
+                        <option value="A">{t('asian')}</option>
+                        <option value="NA">{t('nativeAmerican')}</option>
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                         <FaChevronDown className="text-gray-400" />
@@ -334,7 +336,7 @@ const AssessYourCommunity = () => {
                 }))}
                 className="text-primary hover:text-primary-dark font-medium"
               >
-                + Add another child
+                + {t('addAnotherChild')}
               </button>
             </div>
           </div>
@@ -357,9 +359,9 @@ const AssessYourCommunity = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Submitting...
+                    {t('submitting')}
                   </span>
-                ) : 'Submit'}
+                ) : t('submit')}
               </button>
               
               {/* Success Checkmark */}

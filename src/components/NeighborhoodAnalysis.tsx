@@ -3,6 +3,7 @@
 import React from 'react';
 import { FaSchool, FaShieldAlt, FaHospital, FaStore, FaHome } from 'react-icons/fa';
 import { MdDirectionsBus } from 'react-icons/md';
+import { useTranslations } from 'next-intl';
 
 // Define interfaces for neighborhood data
 export interface CategoryData {
@@ -34,29 +35,30 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
   opportunityScore, 
   loadingOpportunityScore = false 
 }) => {
+  const t = useTranslations('neighborhoodAnalysis');
   // Define the categories for neighborhood insights
   const categories = [
-    { id: 'schoolQuality', name: 'School Quality', icon: <FaSchool size={20} /> },
-    { id: 'safety', name: 'Safety', icon: <FaShieldAlt size={20} /> },
-    { id: 'healthcare', name: 'Healthcare', icon: <FaHospital size={20} /> },
-    { id: 'amenities', name: 'Amenities', icon: <FaStore size={20} /> },
-    { id: 'housing', name: 'Housing', icon: <FaHome size={20} /> },
-    { id: 'transportation', name: 'Transportation', icon: <MdDirectionsBus size={20} /> }
+    { id: 'schoolQuality', name: t('schoolQuality'), icon: <FaSchool size={20} /> },
+    { id: 'safety', name: t('safety'), icon: <FaShieldAlt size={20} /> },
+    { id: 'healthcare', name: t('healthcare'), icon: <FaHospital size={20} /> },
+    { id: 'amenities', name: t('amenities'), icon: <FaStore size={20} /> },
+    { id: 'housing', name: t('housing'), icon: <FaHome size={20} /> },
+    { id: 'transportation', name: t('transportation'), icon: <MdDirectionsBus size={20} /> }
   ];
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4">Neighborhood Analysis</h3>
+      <h3 className="text-xl font-semibold mb-4">{t('title')}</h3>
       
       {(!insightsData && opportunityScore === null) ? (
         <div className="flex justify-center items-center flex-grow">
-          <p className="text-gray-500">Enter your address to see neighborhood analysis</p>
+          <p className="text-gray-500">{t('enterAddress')}</p>
         </div>
       ) : (
         <div className="flex-grow flex flex-col">
           {/* Opportunity Score */}
           <div className="mb-8 border-b border-gray-200 pb-6">
-            <h4 className="text-lg font-semibold mb-4">Your Opportunity Score</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('opportunityScore')}</h4>
             <div className="flex items-center">
               {loadingOpportunityScore ? (
                 <div className="flex items-center">
@@ -67,7 +69,7 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
                   </div>
                   <div className="flex-grow">
                     <p className="text-sm text-gray-600">
-                      Loading opportunity score...
+                      {t('loadingScore')}
                     </p>
                   </div>
                 </div>
@@ -86,7 +88,7 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
                   </div>
                   <div className="flex-grow">
                     <p className="text-sm text-gray-600">
-                      This score represents the economic mobility potential for children in this area.
+                      {t('scoreDescription')}
                     </p>
                   </div>
                 </div>
@@ -99,7 +101,7 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
                   </div>
                   <div className="flex-grow">
                     <p className="text-sm text-gray-600">
-                      Enter your address to see your opportunity score.
+                      {t('enterAddress')}
                     </p>
                   </div>
                 </div>
@@ -110,15 +112,15 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
           {/* Neighborhood Insights Bar Graph */}
           {loadingInsights ? (
             <div>
-              <h4 className="text-lg font-semibold mb-4">Neighborhood Factors</h4>
+              <h4 className="text-lg font-semibold mb-4">{t('neighborhoodFactors')}</h4>
               <div className="flex flex-col items-center justify-center py-8">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                <p className="mt-4 text-sm text-gray-500">Loading neighborhood insights...</p>
+                <p className="mt-4 text-sm text-gray-500">{t('loadingInsights')}</p>
               </div>
             </div>
           ) : insightsData ? (
             <div>
-              <h4 className="text-lg font-semibold mb-4">Neighborhood Factors</h4>
+              <h4 className="text-lg font-semibold mb-4">{t('neighborhoodFactors')}</h4>
               <div>
                 {categories.map((category) => {
                   const score = insightsData[category.id].score;

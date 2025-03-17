@@ -6,6 +6,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { geocodeAddress } from '../utils/geocodingUtils';
 import { usePersonalization } from './AssessQuiz';
 import NeighborhoodAnalysis, { NeighborhoodData } from './NeighborhoodAnalysis';
+import { useTranslations } from 'next-intl';
 
 // Helper function to calculate opportunity score based on household income
 const calculateOpportunityScore = (income: number): number => {
@@ -122,6 +123,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
   address, 
   showWrapper = true 
 }) => {
+  const t = useTranslations('opportunityMap');
   // Get the personalization context to share opportunity score
   const { updateData } = usePersonalization();
   
@@ -751,8 +753,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
   return (
     <div id="opportunity-map" className="min-h-screen px-4 py-16 max-w-6xl mx-auto scroll-mt-28">
       <div className="text-center mb-10">
-        <h2 className="text-3xl md:text-4xl font-bold mb-2">Opportunity Map</h2>
-        <p className="text-lg text-gray-600">Explore economic mobility across different regions</p>
+        <h2 className="text-3xl md:text-4xl font-bold mb-2">{t('title')}</h2>
+        <p className="text-lg text-gray-600">{t('subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[65%_35%] gap-8 md:grid-flow-col auto-rows-fr">
@@ -767,7 +769,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
           <div className="border-t border-gray-100 py-2">
             <div className="mx-auto w-[350px]">
               <div className="flex flex-col">
-                <div className="text-center text-xs font-medium mb-1">Opportunity Score (1-10)</div>
+                <div className="text-center text-xs font-medium mb-1">{t('opportunityScoreScale')}</div>
                 <div className="flex h-4 w-full">
                   <div className="h-full" style={{ backgroundColor: '#9b252f', width: '9.1%' }}></div>
                   <div className="h-full" style={{ backgroundColor: '#b65441', width: '9.1%' }}></div>
@@ -795,9 +797,9 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
                   <span>10+</span>
                 </div>
                 <div className="flex justify-between text-[10px] font-medium w-full mt-0.5">
-                  <span className="text-[#9b252f]">Bad</span>
+                  <span className="text-[#9b252f]">{t('lowOpportunity')}</span>
                   <span className="flex-grow"></span>
-                  <span className="text-[#34687e]">Good</span>
+                  <span className="text-[#34687e]">{t('highOpportunity')}</span>
                 </div>
               </div>
             </div>
@@ -820,7 +822,7 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
       {/* How can we do better section */}
       <div className="mt-24 mb-16">
         <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-semibold">How can we do better?</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold">{t('howCanWeDoBetter')}</h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
@@ -834,8 +836,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
               1
             </div>
-            <h3 className="text-base font-semibold mb-1 text-center">Live in Good Areas</h3>
-            <p className="text-sm text-center text-gray-700">Find neighborhoods with better schools, resources, and opportunity networks</p>
+            <h3 className="text-base font-semibold mb-1 text-center">{t('liveInGoodAreas')}</h3>
+            <p className="text-sm text-center text-gray-700">{t('liveInGoodAreasDesc')}</p>
           </div>
 
           {/* Good Education - School building icon */}
@@ -848,8 +850,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
               2
             </div>
-            <h3 className="text-base font-semibold mb-1 text-center">Good Education</h3>
-            <p className="text-sm text-center text-gray-700">Access quality schools, afterschool programs, and educational resources</p>
+            <h3 className="text-base font-semibold mb-1 text-center">{t('goodEducation')}</h3>
+            <p className="text-sm text-center text-gray-700">{t('goodEducationDesc')}</p>
           </div>
 
           {/* Take Advantage - Lightbulb/opportunity icon */}
@@ -862,8 +864,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
               3
             </div>
-            <h3 className="text-base font-semibold mb-1 text-center">Take Advantage of Opportunities</h3>
-            <p className="text-sm text-center text-gray-700">Utilize mentorship, community programs, and enrichment activities</p>
+            <h3 className="text-base font-semibold mb-1 text-center">{t('takeAdvantage')}</h3>
+            <p className="text-sm text-center text-gray-700">{t('takeAdvantageDesc')}</p>
           </div>
 
           {/* Graduate College - Graduation cap icon */}
@@ -876,8 +878,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
               4
             </div>
-            <h3 className="text-base font-semibold mb-1 text-center">Graduate College</h3>
-            <p className="text-sm text-center text-gray-700">Higher education significantly improves lifetime earning potential</p>
+            <h3 className="text-base font-semibold mb-1 text-center">{t('graduateCollege')}</h3>
+            <p className="text-sm text-center text-gray-700">{t('graduateCollegeDesc')}</p>
           </div>
 
           {/* Career Success - Briefcase/professional icon */}
@@ -890,8 +892,8 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
             <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mb-3 font-semibold">
               5
             </div>
-            <h3 className="text-base font-semibold mb-1 text-center">Career Success</h3>
-            <p className="text-sm text-center text-gray-700">Build professional skills and networks for long-term financial stability</p>
+            <h3 className="text-base font-semibold mb-1 text-center">{t('careerSuccess')}</h3>
+            <p className="text-sm text-center text-gray-700">{t('careerSuccessDesc')}</p>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { School } from 'lucide-react'
 import { useAssessment, AssessData } from '../AssessQuiz'
+import { useTranslations } from 'next-intl'
 
 // Enhanced types for the recommendations data
 type TownData = {
@@ -262,6 +263,7 @@ const generatePersonalizedAdvice = (assessmentData: AssessData | undefined): str
 };
 
 const Stay: React.FC<StayProps> = ({ onSaveChoices, assessmentData }) => {
+  const t = useTranslations('stay');
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
   const [selectedCommunityPrograms, setSelectedCommunityPrograms] = useState<string[]>([])
   const [recommendations, setRecommendations] = useState<Recommendations>(defaultRecommendations)
@@ -403,17 +405,17 @@ const Stay: React.FC<StayProps> = ({ onSaveChoices, assessmentData }) => {
                   {recommendations.townData.website}
                 </a>{' '}
                 <span className="text-sm text-gray-600">
-                  (Click to learn more about local opportunities!)
+                  {t('clickToLearnMore')}
                 </span>
               </p>
-              <p><strong>Description:</strong> {recommendations.townData.description}</p>
+              <p><strong>{t('description')}:</strong> {recommendations.townData.description}</p>
             </div>
           </div>
 
           {/* Local Schools */}
           <div className="bg-white shadow-md rounded-lg p-6">
-            <h3 className="text-2xl font-semibold mb-4">Local Schools</h3>
-            <p className="mb-1">Select a school that would be a good alternative:</p>
+            <h3 className="text-2xl font-semibold mb-4">{t('localSchools')}</h3>
+            <p className="mb-1">{t('selectSchool')}</p>
             <p className="mb-4 text-sm text-gray-600">{getSchoolLevelMessage(userData)}</p>
             
             {filteredSchools.length > 0 ? (
@@ -435,7 +437,7 @@ const Stay: React.FC<StayProps> = ({ onSaveChoices, assessmentData }) => {
                         <div className="flex items-center justify-between">
                           <h4 className="text-xl font-semibold">{school.name}</h4>
                           <div className="flex items-center">
-                            <p className="text-sm text-gray-600 ml-4">Rating: {school.rating}/10</p>
+                            <p className="text-sm text-gray-600 ml-4">{t('rating')}: {school.rating}/10</p>
                             {school.schoolType && (
                               <span className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs capitalize">
                                 {school.schoolType}

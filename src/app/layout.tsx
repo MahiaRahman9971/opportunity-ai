@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Nunito } from 'next/font/google'
 import './globals.css'
-import ChatWidget from '@/components/ChatWidget'
+import { locales } from '@/i18n'
 
 // Initialize the Nunito font
 const nunito = Nunito({ 
@@ -15,16 +15,22 @@ export const metadata: Metadata = {
   description: 'A friendly guide to creating opportunities for your family',
 }
 
+// Generate static params for all supported locales
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
 export default function RootLayout({
   children,
+  params: { locale }
 }: {
   children: React.ReactNode
+  params: { locale: string }
 }) {
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className={`${nunito.variable} font-nunito`}>
         {children}
-        <ChatWidget />
       </body>
     </html>
   )

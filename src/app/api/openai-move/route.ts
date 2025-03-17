@@ -16,7 +16,7 @@ if (!process.env.OPENAI_API_KEY) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { zipCode, income, children } = body;
+    const { zipCode, income, children, locale = 'en' } = body;
 
     if (!zipCode) {
       return NextResponse.json(
@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
           role: "system",
           content: `You are an AI assistant that provides personalized recommendations for families looking to 
                     move to improve their children's future opportunities. Format your response as valid JSON. 
-                    Your entire response must be valid JSON that can be parsed with JSON.parse().`
+                    Your entire response must be valid JSON that can be parsed with JSON.parse().
+                    
+                    IMPORTANT: You must respond in ${locale === 'es' ? 'Spanish' : locale === 'zh' ? 'Chinese' : 'English'}.
+                    All text content in your response should be in ${locale === 'es' ? 'Spanish' : locale === 'zh' ? 'Chinese' : 'English'}.`
         },
         {
           role: "user",

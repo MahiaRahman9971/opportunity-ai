@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { FaComments, FaTimes, FaPaperPlane } from 'react-icons/fa'
+import { useTranslations } from 'next-intl'
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,6 +18,7 @@ interface StoredMessage {
 }
 
 const ChatWidget: React.FC = () => {
+  const t = useTranslations('chat');
   const [isOpen, setIsOpen] = useState(false)
   const [showPopup, setShowPopup] = useState(false)
   
@@ -50,7 +52,7 @@ const ChatWidget: React.FC = () => {
     return [
       {
         role: 'assistant' as const,
-        content: 'Hi there! 👋 How can I help you with your family\'s opportunities today?',
+        content: t('initialMessage'),
         timestamp: new Date()
       }
     ]
@@ -90,7 +92,7 @@ const ChatWidget: React.FC = () => {
   const clearChatHistory = () => {
     const initialMessage: Message = {
       role: 'assistant',
-      content: 'Hi there! 👋 How can I help you with your family\'s opportunities today?',
+      content: t('initialMessage'),
       timestamp: new Date()
     }
     setMessages([initialMessage])
@@ -160,7 +162,7 @@ const ChatWidget: React.FC = () => {
       // Add error message to chat
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        content: t('errorMessage'),
         timestamp: new Date()
       }
       
@@ -192,7 +194,7 @@ const ChatWidget: React.FC = () => {
                 <FaTimes size={12} />
               </button>
               
-              <p className="text-gray-800 font-medium whitespace-nowrap">Chat with me! 👋</p>
+              <p className="text-gray-800 font-medium whitespace-nowrap">{t('chatWithMe')}</p>
               <div className="absolute -bottom-2 right-4 w-0 h-0 border-l-8 border-l-transparent border-t-8 border-t-white border-r-8 border-r-transparent"></div>
             </div>
           </div>
@@ -202,7 +204,7 @@ const ChatWidget: React.FC = () => {
         <button
           onClick={toggleChat}
           className="bg-primary hover:bg-primary-dark text-white p-4 rounded-full shadow-lg flex items-center justify-center"
-          aria-label={isOpen ? "Close chat" : "Open chat"}
+          aria-label={isOpen ? t('close') : t('open')}
         >
           {isOpen ? <FaTimes size={20} /> : <FaComments size={20} />}
         </button>
@@ -213,19 +215,19 @@ const ChatWidget: React.FC = () => {
         <div className="absolute bottom-16 right-0 w-80 sm:w-96 h-96 bg-white rounded-lg shadow-xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-primary text-white px-4 py-3 flex justify-between items-center">
-            <h3 className="font-semibold">Opportunity AI Assistant</h3>
+            <h3 className="font-semibold">{t('assistant')}</h3>
             <div className="flex space-x-2">
               <button
                 onClick={clearChatHistory}
                 className="text-white hover:text-gray-200 text-xs"
-                aria-label="Clear chat"
+                aria-label={t('clear')}
               >
-                Clear
+                {t('clear')}
               </button>
               <button 
                 onClick={toggleChat}
                 className="text-white hover:text-gray-200"
-                aria-label="Close chat"
+                aria-label={t('close')}
               >
                 <FaTimes size={16} />
               </button>
@@ -278,7 +280,7 @@ const ChatWidget: React.FC = () => {
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type your question..."
+              placeholder={t('typePlaceholder')}
               className="flex-1 resize-none border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               rows={2}
               disabled={isLoading}
@@ -291,7 +293,7 @@ const ChatWidget: React.FC = () => {
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary text-white hover:bg-primary-dark'
               }`}
-              aria-label="Send message"
+              aria-label={t('send')}
             >
               <FaPaperPlane size={16} />
             </button>

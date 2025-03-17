@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react'
 import { FaStar, FaQuoteLeft, FaQuoteRight, FaMapMarkerAlt, FaUser, FaEnvelope, FaComment } from 'react-icons/fa'
+import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 
 interface Testimonial {
   id: string;
@@ -14,6 +16,7 @@ interface Testimonial {
 }
 
 const CommunityConnections: React.FC = () => {
+  const t = useTranslations('community');
   const [activeTab, setActiveTab] = useState<'testimonials' | 'directory' | 'share'>('testimonials')
   const [newTestimonialForm, setNewTestimonialForm] = useState({
     name: '',
@@ -116,7 +119,7 @@ const CommunityConnections: React.FC = () => {
   const handleSubmitTestimonial = (e: React.FormEvent) => {
     e.preventDefault()
     // In a real application, this would submit the testimonial to a backend
-    alert('Thank you for sharing your story! Your testimonial will be reviewed and published soon.')
+    alert(t('testimonialSubmitMessage'))
     setNewTestimonialForm({
       name: '',
       location: '',
@@ -137,8 +140,8 @@ const CommunityConnections: React.FC = () => {
   return (
     <div id="community-connections" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-12">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Community Connections</h1>
-        <p className="text-xl">Connect with others on their journey to better opportunities</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('title')}</h1>
+        <p className="text-xl">{t('subtitle')}</p>
       </div>
       
       {/* Tab Navigation */}
@@ -152,7 +155,7 @@ const CommunityConnections: React.FC = () => {
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Testimonials
+            {t('testimonials')}
           </button>
           <button
             onClick={() => setActiveTab('directory')}
@@ -162,7 +165,7 @@ const CommunityConnections: React.FC = () => {
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Community Directory
+            {t('communityDirectory')}
           </button>
           <button
             onClick={() => setActiveTab('share')}
@@ -172,7 +175,7 @@ const CommunityConnections: React.FC = () => {
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Share Your Story
+            {t('shareYourStory')}
           </button>
         </div>
       </div>
@@ -185,10 +188,12 @@ const CommunityConnections: React.FC = () => {
               <div className="flex items-start mb-4">
                 <div className="flex-shrink-0 mr-4">
                   {testimonial.avatar ? (
-                    <img 
+                    <Image 
                       src={testimonial.avatar} 
                       alt={`${testimonial.name}'s avatar`}
-                      className="w-12 h-12 rounded-full"
+                      width={48}
+                      height={48}
+                      className="rounded-full"
                       style={{ backgroundColor: '#6CD9CA' }}
                     />
                   ) : (

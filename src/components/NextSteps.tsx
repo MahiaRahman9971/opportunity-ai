@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { FaCheckCircle, FaCircle, FaExternalLinkAlt } from 'react-icons/fa'
 import { MdDownload, MdEmail, MdPrint, MdInfo } from 'react-icons/md'
+import { useTranslations } from 'next-intl'
 
 interface SavedChoices {
   town: string;
@@ -29,6 +30,7 @@ interface Task {
 }
 
 const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) => {
+  const t = useTranslations('nextSteps');
   const [completedTasks, setCompletedTasks] = useState<string[]>([])
   const [expandedTasks, setExpandedTasks] = useState<string[]>([])
   
@@ -57,15 +59,15 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
     const commonTasks: Task[] = [
       {
         id: 'review_choices',
-        text: `Review my selected choices for ${savedChoices.town}`,
-        details: 'Take time to reflect on these choices and discuss with your family',
-        explanation: 'Involving your whole family in the decision-making process ensures everyone feels heard and increases the likelihood of a successful transition. This is especially important for children who may feel anxious about changes.'
+        text: t('reviewChoices', {town: savedChoices.town}),
+        details: t('reviewChoicesDetails'),
+        explanation: t('reviewChoicesExplanation')
       },
       {
         id: 'create_calendar',
-        text: 'Create a calendar with important dates and deadlines',
-        details: 'Set reminders for application deadlines, school visits, and community program registrations',
-        explanation: 'Opportunity windows often have specific timelines. Creating a calendar helps you stay organized and ensures you don\'t miss important deadlines for school applications, program registrations, or housing opportunities.'
+        text: t('createCalendar'),
+        details: t('createCalendarDetails'),
+        explanation: t('createCalendarExplanation')
       }
     ]
 
@@ -73,64 +75,64 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
       return [
         {
           id: 'township_website',
-          text: `Visit the ${savedChoices.town} township website`,
-          details: 'Explore resources, community events, and local initiatives',
-          explanation: 'Township websites often contain valuable information about local programs, initiatives, and resources that aren\'t advertised elsewhere. Many offer newsletters you can subscribe to for regular updates.',
+          text: t('visitTownshipWebsite', {town: savedChoices.town}),
+          details: t('exploreTownshipResources'),
+          explanation: t('townshipWebsiteExplanation'),
           link: {
             url: `https://www.google.com/search?q=${encodeURIComponent(savedChoices.town + ' township official website')}`,
-            label: 'Search for Township Website'
+            label: t('searchTownshipWebsite')
           }
         },
         {
           id: 'school_contact',
           text: savedChoices.selectedSchool 
-            ? `Contact ${savedChoices.selectedSchool} about transfer options` 
-            : 'Research school transfer options in your area',
-          details: 'Prepare questions about curriculum, extracurricular activities, and the transfer process',
-          explanation: 'School quality is one of the biggest factors in a child\'s future opportunities. Even within the same district, different schools may offer vastly different resources and programs.',
+            ? t('contactSelectedSchool', {school: savedChoices.selectedSchool}) 
+            : t('researchSchoolOptions'),
+          details: t('prepareSchoolQuestions'),
+          explanation: t('schoolQualityExplanation'),
           link: savedChoices.selectedSchool ? {
             url: `https://www.google.com/search?q=${encodeURIComponent(savedChoices.selectedSchool + ' ' + savedChoices.town)}`,
-            label: 'Search for School Information'
+            label: t('searchSchoolInfo')
           } : undefined
         },
         {
           id: 'program_research',
           text: savedChoices.selectedCommunityPrograms.length > 0
-            ? `Research enrollment details for ${savedChoices.selectedCommunityPrograms.join(', ')}`
-            : 'Explore community programs in your area',
-          details: 'Look for registration dates, costs, and program schedules',
-          explanation: 'Community programs provide additional support, enrichment, and opportunities that supplement what schools offer. These programs can help develop skills, confidence, and social connections that improve future outcomes.',
+            ? t('researchProgramDetails', {programs: savedChoices.selectedCommunityPrograms.join(', ')})
+            : t('exploreCommunityPrograms'),
+          details: t('lookForProgramDetails'),
+          explanation: t('communityProgramsExplanation'),
           link: savedChoices.selectedCommunityPrograms.length > 0 ? {
             url: `https://www.google.com/search?q=${encodeURIComponent(savedChoices.selectedCommunityPrograms[0] + ' ' + savedChoices.town)}`,
-            label: 'Search for Program Information'
+            label: t('searchProgramInfo')
           } : undefined
         },
         {
           id: 'community_visit',
           text: savedChoices.selectedCommunityPrograms.length > 0
-            ? `Schedule visits to ${savedChoices.selectedCommunityPrograms.join(', ')}`
-            : 'Visit local community centers',
-          details: 'Meet program coordinators and see facilities in person',
-          explanation: 'In-person visits give you a much better sense of the environment and quality of programs than websites or brochures can provide. They also demonstrate your interest, which can be helpful for competitive programs.'
+            ? t('scheduleVisits', {programs: savedChoices.selectedCommunityPrograms.join(', ')})
+            : t('visitCommunityCenters'),
+          details: t('meetCoordinators'),
+          explanation: t('inPersonVisitsExplanation')
         },
         {
           id: 'parent_network',
-          text: 'Connect with other parents in your community',
-          details: 'Join local parent groups, school PTAs, or neighborhood associations',
-          explanation: 'Parent networks are invaluable sources of information, support, and advocacy. Other parents can share insider knowledge about schools, programs, and resources that may not be widely advertised.',
+          text: t('connectWithParents'),
+          details: t('joinParentGroups'),
+          explanation: t('parentNetworksExplanation'),
           link: {
             url: `https://www.facebook.com/search/groups/?q=${encodeURIComponent('parents ' + savedChoices.town)}`,
-            label: 'Find Local Parent Groups'
+            label: t('findParentGroups')
           }
         },
         {
           id: 'advocate',
-          text: 'Identify ways to advocate for better opportunities',
-          details: 'Attend town meetings, connect with local representatives, or join advocacy groups',
-          explanation: 'Community advocacy has been shown to improve local services and opportunities. When parents organize and advocate together, they can create significant positive changes in schools and community resources.',
+          text: t('identifyAdvocacyWays'),
+          details: t('attendTownMeetings'),
+          explanation: t('communityAdvocacyExplanation'),
           link: {
             url: `https://www.google.com/search?q=${encodeURIComponent('city council meetings ' + savedChoices.town)}`,
-            label: 'Find Local Government Meetings'
+            label: t('findGovernmentMeetings')
           }
         },
         ...commonTasks
@@ -140,91 +142,91 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
         {
           id: 'housing_research',
           text: savedChoices.selectedHousingType 
-            ? `Research ${savedChoices.selectedHousingType} options in ${savedChoices.town}`
-            : `Research housing options in ${savedChoices.town}`,
-          details: 'Compare costs, neighborhoods, and proximity to schools and amenities',
-          explanation: 'Housing location significantly impacts access to quality schools, safe environments, and community resources. Research shows that moving to a high-opportunity neighborhood can improve children\'s lifetime outcomes.',
+            ? t('researchHousingType', {housingType: savedChoices.selectedHousingType, town: savedChoices.town})
+            : t('researchHousing', {town: savedChoices.town}),
+          details: t('compareHousingOptions'),
+          explanation: t('housingLocationExplanation'),
           link: {
             url: `https://www.zillow.com/homes/${encodeURIComponent(savedChoices.town)}_rb/`,
-            label: 'View Housing Options'
+            label: t('viewHousingOptions')
           }
         },
         {
           id: 'neighborhood_visit',
           text: savedChoices.selectedNeighborhood 
-            ? `Schedule a visit to ${savedChoices.selectedNeighborhood} in ${savedChoices.town}`
-            : `Schedule a visit to ${savedChoices.town}`,
-          details: 'Explore the neighborhood, visit schools, and get a feel for the community',
-          explanation: 'Visiting in person helps you assess factors that don\'t show up in statistics: community feel, safety, noise levels, and whether the neighborhood is a good fit for your family\'s lifestyle and needs.',
+            ? t('scheduleNeighborhoodVisit', {neighborhood: savedChoices.selectedNeighborhood, town: savedChoices.town})
+            : t('scheduleTownVisit', {town: savedChoices.town}),
+          details: t('exploreNeighborhood'),
+          explanation: t('visitingInPersonExplanation'),
           link: savedChoices.selectedNeighborhood ? {
             url: `https://www.google.com/maps/search/${encodeURIComponent(savedChoices.selectedNeighborhood + ' ' + savedChoices.town)}`,
-            label: 'View Neighborhood Map'
+            label: t('viewNeighborhoodMap')
           } : undefined
         },
         {
           id: 'school_contact',
           text: savedChoices.selectedSchool 
-            ? `Contact ${savedChoices.selectedSchool} about enrollment` 
-            : 'Research school enrollment procedures',
-          details: 'Gather information about enrollment requirements, deadlines, and documentation needed',
-          explanation: 'Schools may have specific enrollment windows, documentation requirements, or waitlists. Contacting them early gives you time to prepare and increases your chances of securing a spot.',
+            ? t('contactSchoolEnrollment', {school: savedChoices.selectedSchool}) 
+            : t('researchSchoolEnrollment'),
+          details: t('gatherEnrollmentInfo'),
+          explanation: t('schoolEnrollmentExplanation'),
           link: savedChoices.selectedSchool ? {
             url: `https://www.google.com/search?q=${encodeURIComponent(savedChoices.selectedSchool + ' ' + savedChoices.town + ' enrollment')}`,
-            label: 'Search for School Enrollment Info'
+            label: t('searchSchoolEnrollmentInfo')
           } : undefined
         },
         {
           id: 'program_research',
           text: savedChoices.selectedCommunityPrograms.length > 0
-            ? `Research registration for ${savedChoices.selectedCommunityPrograms.join(', ')}`
-            : 'Explore community programs in the new area',
-          details: 'Look for registration dates, costs, and program schedules',
-          explanation: 'Community programs provide additional support and enrichment beyond school. They help children build skills, make friends, and develop a sense of belonging in their new community.',
+            ? t('researchProgramRegistration', {programs: savedChoices.selectedCommunityPrograms.join(', ')})
+            : t('exploreNewAreaPrograms'),
+          details: t('lookForRegistrationDates'),
+          explanation: t('communityProgramsSupportExplanation'),
           link: savedChoices.selectedCommunityPrograms.length > 0 ? {
             url: `https://www.google.com/search?q=${encodeURIComponent(savedChoices.selectedCommunityPrograms[0] + ' ' + savedChoices.town)}`,
-            label: 'Search for Program Information'
+            label: t('searchProgramInfo')
           } : undefined
         },
         {
           id: 'moving_plans',
-          text: 'Create a detailed moving plan and timeline',
-          details: 'Include housing search, school transfers, and community program registrations',
-          explanation: 'Moving involves many steps that need to be coordinated. A detailed plan helps ensure nothing falls through the cracks during this complex transition.',
+          text: t('createMovingPlan'),
+          details: t('includeMovingSteps'),
+          explanation: t('movingPlanExplanation'),
           link: {
             url: 'https://www.moving.com/tips/creating-a-moving-timeline-checklist/',
-            label: 'Moving Timeline Guide'
+            label: t('movingTimelineGuide')
           }
         },
         {
           id: 'budget',
-          text: 'Develop a budget for the move',
-          details: 'Consider housing costs, moving expenses, and potential changes in cost of living',
-          explanation: 'Moving often involves significant costs beyond just housing. Planning for these expenses helps prevent financial stress that could undermine the benefits of relocating.',
+          text: t('developMovingBudget'),
+          details: t('considerMovingCosts'),
+          explanation: t('movingBudgetExplanation'),
           link: {
             url: 'https://www.bankrate.com/calculators/savings/moving-cost-of-living-calculator.aspx',
-            label: 'Cost of Living Calculator'
+            label: t('costOfLivingCalculator')
           }
         },
         {
           id: 'local_resources',
-          text: 'Identify local resources for new families',
-          details: 'Find welcome centers, family support services, and newcomer programs',
-          explanation: 'Many communities have resources specifically designed to help new families integrate and thrive. These can ease the transition and help you quickly build connections in your new community.',
+          text: t('identifyLocalResources'),
+          details: t('findWelcomeCenters'),
+          explanation: t('localResourcesExplanation'),
           link: {
             url: `https://www.google.com/search?q=${encodeURIComponent('family resources newcomers ' + savedChoices.town)}`,
-            label: 'Search for Family Resources'
+            label: t('searchFamilyResources')
           }
         },
         {
           id: 'housing_arrangement',
           text: savedChoices.selectedHousingType 
-            ? `Contact real estate agents about ${savedChoices.selectedHousingType} options`
-            : 'Contact real estate agents about housing options',
-          details: 'Prepare questions about availability, pricing, and financing options',
-          explanation: 'Local real estate agents have valuable insights about neighborhoods, school districts, and housing trends that may not be obvious online. They can also help you navigate the local market more effectively.',
+            ? t('contactAgentsHousingType', {housingType: savedChoices.selectedHousingType})
+            : t('contactAgentsHousing'),
+          details: t('prepareHousingQuestions'),
+          explanation: t('realEstateAgentsExplanation'),
           link: {
             url: `https://www.realtor.com/realestateagents/${encodeURIComponent(savedChoices.town)}`,
-            label: 'Find Real Estate Agents'
+            label: t('findRealEstateAgents')
           }
         },
         ...commonTasks
@@ -241,8 +243,8 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
     return (
       <div id="next-steps" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
         <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Next Steps</h1>
-          <p className="text-xl">Complete the previous sections to see your personalized action plan</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('title')}</h1>
+          <p className="text-xl">{t('completeMessage')}</p>
         </div>
       </div>
     )
@@ -251,11 +253,11 @@ const NextSteps: React.FC<NextStepsProps> = ({ selectedAction, savedChoices }) =
   return (
     <div id="next-steps" className="min-h-screen px-4 py-10 max-w-6xl mx-auto scroll-mt-20">
       <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Your Next Steps</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">{t('yourNextSteps')}</h1>
         <p className="text-xl">
           {selectedAction === 'stay' 
-            ? `A personalized to-do list to improve opportunities in ${savedChoices.town}`
-            : `A personalized to-do list for your move to ${savedChoices.town}`
+            ? t('personalizedToDoStay', {town: savedChoices.town})
+            : t('personalizedToDoMove', {town: savedChoices.town})
           }
         </p>
       </div>
