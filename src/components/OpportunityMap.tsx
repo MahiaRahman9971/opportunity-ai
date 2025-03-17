@@ -288,6 +288,21 @@ const OpportunityMap: React.FC<OpportunityMapProps> = ({
         }
       });
       
+      // Add water bodies layer (white overlay)
+      map.current.addLayer({
+        id: 'water-bodies-layer',
+        type: 'fill',
+        source: 'mapbox-streets',
+        'source-layer': 'water',
+        layout: {
+          'visibility': 'visible'
+        },
+        paint: {
+          'fill-color': '#ffffff',  // White color for water bodies
+          'fill-opacity': 1
+        }
+      });
+      
       // Add major streets background
       map.current.addLayer({
         id: 'major-streets-background',
