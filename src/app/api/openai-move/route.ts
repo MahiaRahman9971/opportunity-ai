@@ -71,7 +71,13 @@ export async function POST(req: NextRequest) {
                        - tags: Array of relevant categories like "stem", "arts", "sports", etc.
                        - Make recommendations based on the children's ages, genders, and family income
                     
-                    5. communityDemographics: Population info, ethnic composition, education levels, etc.
+                    5. communityDemographics: Include the following data:
+                       - population: Total population number
+                       - medianAge: Median age of residents
+                       - ethnicComposition: Array of objects with group name and percentage
+                       - medianHousehold: Median household income
+                       - educationLevel: Array of objects with education level and percentage
+                       - religiousComposition: Array of objects with religion name and percentage (include major religions like Christian, Jewish, Muslim, Hindu, Non-religious, etc.)
                     
                     6. housingOptions: Array with different housing types, price ranges, and sizes
                        - Include a suitability field (1-5) indicating how suitable each option is for this family's size and income
