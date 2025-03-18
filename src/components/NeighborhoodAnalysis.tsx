@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FaSchool, FaShieldAlt, FaHospital, FaStore, FaHome } from 'react-icons/fa';
 import { MdDirectionsBus } from 'react-icons/md';
 import { useTranslations } from 'next-intl';
@@ -36,6 +36,27 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
   loadingOpportunityScore = false 
 }) => {
   const t = useTranslations('neighborhoodAnalysis');
+  
+  // State to track user ratings for each category
+  const [userRatings, setUserRatings] = useState<Record<string, number>>({});
+  
+  // Function to set user rating for a category
+  const setUserRating = (categoryId: string, rating: number) => {
+    setUserRatings(prev => {
+      // If clicking the same rating again, remove the rating
+      if (prev[categoryId] === rating + 1) {
+        const newRatings = { ...prev };
+        delete newRatings[categoryId];
+        return newRatings;
+      }
+      // Otherwise set the new rating
+      return {
+        ...prev,
+        [categoryId]: rating + 1 // Add 1 because index is 0-based but rating is 1-10
+      };
+    });
+  };
+  
   // Define the categories for neighborhood insights
   const categories = [
     { id: 'schoolQuality', name: t('schoolQuality'), icon: <FaSchool size={20} /> },
@@ -130,17 +151,37 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
                     <div key={category.id} className="mb-5">
                       <div className="flex items-center mb-1">
                         <span className="text-sm font-medium">{category.name}</span>
-                        <span className="ml-auto text-sm font-semibold">{Math.round(score)}/10</span>
+                        <span className="ml-auto text-sm font-semibold">
+                          {userRatings[category.id] ? 
+                            <span style={{ color: '#6CD9CA' }}>{userRatings[category.id]}/10</span> : 
+                            <span>{Math.round(score)}/10</span>
+                          }
+                        </span>
                       </div>
                       <div className="flex space-x-1">
-                        {[...Array(10)].map((_, index) => (
-                          <div 
-                            key={index} 
-                            className={`${index < filledIcons ? 'text-primary' : 'text-gray-200'}`}
-                          >
-                            {category.icon}
-                          </div>
-                        ))}
+                        {[...Array(10)].map((_, index) => {
+                          // Get user rating for this category (if any)
+                          const userRating = userRatings[category.id] || 0;
+                          
+                          // Determine if this icon should be filled
+                          // If user has set a rating, use that, otherwise use the data score
+                          const isFilledByUser = userRating > 0 && index < userRating;
+                          const isFilledByScore = userRating === 0 && index < filledIcons;
+                          
+                          return (
+                            <div 
+                              key={index} 
+                              className={`
+                                ${isFilledByUser ? 'text-primary' : isFilledByScore ? 'text-primary' : 'text-gray-200'}
+                                cursor-pointer transition-colors duration-200 hover:opacity-80
+                              `}
+                              onClick={() => setUserRating(category.id, index)}
+                              title={`${category.name} - Level ${index + 1}`}
+                            >
+                              {category.icon}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
