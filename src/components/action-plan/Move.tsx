@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { School, Home } from 'lucide-react'
 import { useAssessment, AssessData } from '../AssessQuiz'
 import { MapOnly } from '../OpportunityMap'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 
 // Define types for the recommendations data
 type TownData = {
@@ -487,8 +487,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
           address,
           zipCode,
           income,
-          children,
-          locale
+          children
         })
       });
       
