@@ -9,6 +9,7 @@ import NextSteps from '../../components/NextSteps'
 import CommunityConnections from '../../components/CommunityConnections'
 import { PersonalizationProvider } from '../../components/AssessQuiz'
 import MobileLanguageSwitcher from '../../components/MobileLanguageSwitcher'
+import ClientPage from './client-page'
 
 
 interface SavedChoices {
@@ -125,4 +126,11 @@ function HomeContent({
   );
 }
 
-export default Home
+// Wrap the Home component with ClientPage for internationalization
+export default function Page() {
+  return (
+    <ClientPage>
+      <Home />
+    </ClientPage>
+  );
+}

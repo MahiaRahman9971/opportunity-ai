@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Nunito } from 'next/font/google'
 import './globals.css'
 import { locales } from '@/i18n'
+import ChatWidget from '@/components/ChatWidget'
 
 // Initialize the Nunito font
 const nunito = Nunito({ 
@@ -22,15 +23,15 @@ export function generateStaticParams() {
 
 export default function RootLayout({
   children,
-  params: { locale }
 }: {
   children: React.ReactNode
-  params: { locale: string }
 }) {
+  
   return (
-    <html lang={locale}>
+    <html lang="en">
       <body className={`${nunito.variable} font-nunito`}>
         {children}
+        <ChatWidget />
       </body>
     </html>
   )
