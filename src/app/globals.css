@@ -48,6 +48,35 @@
     color: var(--text-color);
     background-color: var(--background-color);
     min-height: 100vh;
+    overflow-x: hidden; /* Prevent horizontal scroll during animations */
+  }
+  
+  /* Scroll animation styles */
+  .animate-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    min-height: 100px; /* Ensure sections have enough height to be visible */
+    visibility: visible !important; /* Ensure sections are not hidden */
+    display: block !important; /* Ensure sections are displayed */
+  }
+  
+  .animate-section-visible {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+  
+  /* For users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-section {
+      transition: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: block !important;
+    }
   }
   
   h1, h2, h3, h4, h5, h6 {
