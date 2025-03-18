@@ -11,6 +11,7 @@ import PersonalizationQuiz, { usePersonalization } from '../../components/Assess
 import OpportunityMap from '../../components/OpportunityMap'
 import TakeAction from '@/components/action-plan/ActionPlan'
 import NextSteps from '../../components/NextSteps'
+import AdditionalResources from '../../components/AdditionalResources'
 import CommunityConnections from '../../components/CommunityConnections'
 import { PersonalizationProvider } from '../../components/AssessQuiz'
 import MobileLanguageSwitcher from '../../components/MobileLanguageSwitcher'
@@ -155,6 +156,12 @@ function HomeContent({
       </section>
       
       <section className="bg-gray-100 w-full animate-section">
+        <div className="container mx-auto">
+          <AdditionalResources />
+        </div>
+      </section>
+      
+      <section className="bg-white w-full animate-section">
         <div className="container mx-auto">
           <CommunityConnections />
         </div>

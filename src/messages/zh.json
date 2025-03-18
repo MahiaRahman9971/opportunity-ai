@@ -6,6 +6,7 @@
     "opportunityMap": "机会地图",
     "takeAction": "采取行动",
     "nextSteps": "下一步",
+    "resources": "资源",
     "community": "社区"
   },
   "welcome": {
@@ -251,6 +252,24 @@
     "prepareHousingQuestions": "准备有关可用性、价格和融资选择的问题",
     "realEstateAgentsExplanation": "当地房地产经纪人对社区、学区和住房趋势有宝贵的见解，这些在网上可能并不明显。他们还可以帮助您更有效地导航当地市场。",
     "findRealEstateAgents": "寻找房地产经纪人"
+  },
+  "additionalResources": {
+    "title": "附加资源",
+    "subtitle": "帮助准备大学和未来的工具和资源",
+    "testPrep": "标准化考试准备",
+    "testPrepDescription": "免费和低成本的资源，帮助准备SAT、ACT和其他标准化考试",
+    "scholarships": "奖学金和经济资助",
+    "scholarshipsDescription": "找到奖学金、补助金和其他大学经济资助",
+    "onlineCourses": "在线课程和学习",
+    "onlineCoursesDescription": "免费教育资源，帮助培养技能并为大学水平的工作做准备",
+    "collegeApplications": "大学申请帮助",
+    "collegeApplicationsDescription": "帮助导航大学申请过程的资源",
+    "recommendedResources": "推荐资源",
+    "additionalTips": "大学准备建议",
+    "tipEarly": "尽早开始准备 - 理想的话从高中一年级开始",
+    "tipResearch": "研究与你的学术背景、兴趣和经济状况相匹配的大学",
+    "tipVisit": "尽可能参观校园，了解环境",
+    "tipMentors": "与能在过程中提供指导的导师联系"
   },
   "community": {
     "title": "社区联系",

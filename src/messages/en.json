@@ -6,6 +6,7 @@
     "opportunityMap": "Opportunity Map",
     "takeAction": "Take Action",
     "nextSteps": "Next Steps",
+    "resources": "Resources",
     "community": "Community"
   },
   "welcome": {
@@ -236,6 +237,24 @@
     "prepareHousingQuestions": "Prepare questions about availability, pricing, and financing options",
     "realEstateAgentsExplanation": "Local real estate agents have valuable insights about neighborhoods, school districts, and housing trends that may not be obvious online. They can also help you navigate the local market more effectively.",
     "findRealEstateAgents": "Find Real Estate Agents"
+  },
+  "additionalResources": {
+    "title": "Additional Resources",
+    "subtitle": "Tools and resources to help prepare for college and beyond",
+    "testPrep": "Standardized Test Preparation",
+    "testPrepDescription": "Free and low-cost resources to help prepare for the SAT, ACT, and other standardized tests",
+    "scholarships": "Scholarships & Financial Aid",
+    "scholarshipsDescription": "Find scholarships, grants, and other financial assistance for college",
+    "onlineCourses": "Online Courses & Learning",
+    "onlineCoursesDescription": "Free educational resources to build skills and prepare for college-level work",
+    "collegeApplications": "College Application Help",
+    "collegeApplicationsDescription": "Resources for navigating the college application process",
+    "recommendedResources": "Recommended Resources",
+    "additionalTips": "Tips for College Preparation",
+    "tipEarly": "Start preparing early - ideally by freshman year of high school",
+    "tipResearch": "Research colleges that match your academic profile, interests, and financial situation",
+    "tipVisit": "Visit campuses when possible to get a feel for the environment",
+    "tipMentors": "Connect with mentors who can provide guidance through the process"
   },
   "community": {
     "title": "Community Connections",

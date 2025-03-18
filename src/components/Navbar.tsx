@@ -23,6 +23,7 @@ export default function Navbar({ progressBarRef }: NavbarProps) {
             <Link href="#opportunity-map" className="hover:text-primary transition-colors">{t('opportunityMap')}</Link>
             <Link href="#take-action" className="hover:text-primary transition-colors">{t('takeAction')}</Link>
             <Link href="#next-steps" className="hover:text-primary transition-colors">{t('nextSteps')}</Link>
+            <Link href="#additional-resources" className="hover:text-primary transition-colors">{t('resources')}</Link>
             <Link href="#community-connections" className="hover:text-primary transition-colors">{t('community')}</Link>
             <LanguageSelector />
           </div>

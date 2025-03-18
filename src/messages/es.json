@@ -6,6 +6,7 @@
     "opportunityMap": "Mapa de Oportunidades",
     "takeAction": "Tomar Acción",
     "nextSteps": "Próximos Pasos",
+    "resources": "Recursos",
     "community": "Comunidad"
   },
   "welcome": {
@@ -266,6 +267,24 @@
     "prepareHousingQuestions": "Prepara preguntas sobre disponibilidad, precios y opciones de financiamiento",
     "realEstateAgentsExplanation": "Los agentes inmobiliarios locales tienen valiosos conocimientos sobre vecindarios, distritos escolares y tendencias de vivienda que pueden no ser obvios en línea. También pueden ayudarte a navegar el mercado local de manera más efectiva.",
     "findRealEstateAgents": "Encontrar agentes inmobiliarios"
+  },
+  "additionalResources": {
+    "title": "Recursos Adicionales",
+    "subtitle": "Herramientas y recursos para ayudar a prepararse para la universidad y más allá",
+    "testPrep": "Preparación para Exámenes Estandarizados",
+    "testPrepDescription": "Recursos gratuitos y de bajo costo para ayudar a prepararse para el SAT, ACT y otros exámenes estandarizados",
+    "scholarships": "Becas y Ayuda Financiera",
+    "scholarshipsDescription": "Encuentra becas, subvenciones y otra asistencia financiera para la universidad",
+    "onlineCourses": "Cursos en Línea y Aprendizaje",
+    "onlineCoursesDescription": "Recursos educativos gratuitos para desarrollar habilidades y prepararse para el trabajo de nivel universitario",
+    "collegeApplications": "Ayuda con Solicitudes Universitarias",
+    "collegeApplicationsDescription": "Recursos para navegar el proceso de solicitud universitaria",
+    "recommendedResources": "Recursos Recomendados",
+    "additionalTips": "Consejos para la Preparación Universitaria",
+    "tipEarly": "Comienza a prepararte temprano - idealmente desde el primer año de secundaria",
+    "tipResearch": "Investiga universidades que coincidan con tu perfil académico, intereses y situación financiera",
+    "tipVisit": "Visita los campus cuando sea posible para sentir el ambiente",
+    "tipMentors": "Conéctate con mentores que puedan brindarte orientación durante el proceso"
   },
   "community": {
     "title": "Conexiones Comunitarias",
