@@ -41,7 +41,13 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
   const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   
   // Function to set user rating for a category
-  const setUserRating = (categoryId: string, rating: number) => {
+  const setUserRating = (categoryId: string, rating: number, element: HTMLDivElement) => {
+    // Add a subtle animation effect when clicked
+    element.classList.add('animate-pulse');
+    setTimeout(() => {
+      element.classList.remove('animate-pulse');
+    }, 300);
+    
     setUserRatings(prev => {
       // If clicking the same rating again, remove the rating
       if (prev[categoryId] === rating + 1) {
@@ -133,7 +139,10 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
           {/* Neighborhood Insights Bar Graph */}
           {loadingInsights ? (
             <div>
-              <h4 className="text-lg font-semibold mb-4">{t('neighborhoodFactors')}</h4>
+              <div className="mb-4">
+                <h4 className="text-lg font-semibold">{t('neighborhoodFactors')}</h4>
+                <p className="text-xs text-gray-500 italic mt-1">(Click to set your own rating)</p>
+              </div>
               <div className="flex flex-col items-center justify-center py-8">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
                 <p className="mt-4 text-sm text-gray-500">{t('loadingInsights')}</p>
@@ -141,7 +150,10 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
             </div>
           ) : insightsData ? (
             <div>
-              <h4 className="text-lg font-semibold mb-4">{t('neighborhoodFactors')}</h4>
+              <div className="mb-4">
+                <h4 className="text-lg font-semibold">{t('neighborhoodFactors')}</h4>
+                <p className="text-xs text-gray-500 italic mt-1">(Click to set your own rating)</p>
+              </div>
               <div>
                 {categories.map((category) => {
                   const score = insightsData[category.id].score;
@@ -173,12 +185,18 @@ const NeighborhoodAnalysis: React.FC<NeighborhoodAnalysisProps> = ({
                               key={index} 
                               className={`
                                 ${isFilledByUser ? 'text-primary' : isFilledByScore ? 'text-primary' : 'text-gray-200'}
-                                cursor-pointer transition-colors duration-200 hover:opacity-80
+                                cursor-pointer transition-all duration-200 hover:scale-110 hover:opacity-80 hover:drop-shadow-md
+                                ${index === 0 ? 'relative group' : ''}
                               `}
-                              onClick={() => setUserRating(category.id, index)}
+                              onClick={(e) => setUserRating(category.id, index, e.currentTarget as HTMLDivElement)}
                               title={`${category.name} - Level ${index + 1}`}
                             >
                               {category.icon}
+                              {index === 0 && (
+                                <div className="absolute left-0 -top-8 w-32 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                  Click to rate
+                                </div>
+                              )}
                             </div>
                           );
                         })}

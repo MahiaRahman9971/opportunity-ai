@@ -15,6 +15,7 @@ export type AssessData = {
   address: string;
   income: string;
   country: string;
+  isEmployed: boolean;
   children: ChildInfo[];
   opportunityScore?: number | null;
 };
@@ -30,6 +31,7 @@ const defaultData: AssessData = {
   address: '',
   income: '',
   country: '',
+  isEmployed: false,
   children: [],
   opportunityScore: null
 };
@@ -80,6 +82,7 @@ const AssessYourCommunity = () => {
     address: '',
     income: '',
     country: '',
+    isEmployed: false,
     children: [{ name: '', gender: '', age: '', ethnicity: '' }]
   });
   
@@ -224,6 +227,98 @@ const AssessYourCommunity = () => {
                   placeholder={t('countryPlaceholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
+              </div>
+            </div>
+            
+            <div className="mt-4 space-y-2">
+              <label className="block text-sm font-medium">
+                {t('isEmployed')}
+              </label>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      id="isEmployedYes"
+                      name="isEmployed"
+                      checked={formData.isEmployed === true}
+                      onChange={() => {
+                        setFormData(prevData => ({
+                          ...prevData,
+                          isEmployed: true
+                        }));
+                      }}
+                      className="sr-only" // Hide the actual radio button
+                    />
+                    <div 
+                      className={`w-5 h-5 rounded-full border-2 ${formData.isEmployed === true ? 'border-primary' : 'border-gray-300'}`}
+                      onClick={() => {
+                        setFormData(prevData => ({
+                          ...prevData,
+                          isEmployed: true
+                        }));
+                      }}
+                    >
+                      {formData.isEmployed === true && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-primary"></div>
+                      )}
+                    </div>
+                  </div>
+                  <label 
+                    htmlFor="isEmployedYes" 
+                    className="text-sm"
+                    onClick={() => {
+                      setFormData(prevData => ({
+                        ...prevData,
+                        isEmployed: true
+                      }));
+                    }}
+                  >
+                    {t('yes')}
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      id="isEmployedNo"
+                      name="isEmployed"
+                      checked={formData.isEmployed === false}
+                      onChange={() => {
+                        setFormData(prevData => ({
+                          ...prevData,
+                          isEmployed: false
+                        }));
+                      }}
+                      className="sr-only" // Hide the actual radio button
+                    />
+                    <div 
+                      className={`w-5 h-5 rounded-full border-2 ${formData.isEmployed === false ? 'border-primary' : 'border-gray-300'}`}
+                      onClick={() => {
+                        setFormData(prevData => ({
+                          ...prevData,
+                          isEmployed: false
+                        }));
+                      }}
+                    >
+                      {formData.isEmployed === false && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-primary"></div>
+                      )}
+                    </div>
+                  </div>
+                  <label 
+                    htmlFor="isEmployedNo" 
+                    className="text-sm"
+                    onClick={() => {
+                      setFormData(prevData => ({
+                        ...prevData,
+                        isEmployed: false
+                      }));
+                    }}
+                  >
+                    {t('no')}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
