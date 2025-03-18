@@ -2,6 +2,11 @@
 
 import React, { useState } from 'react'
 
+// Prevent static prerendering of this page
+export const dynamic = 'force-dynamic'
+// Prevent static generation during build
+export const runtime = 'edge'
+
 // Define proper interface for the API response
 interface MoveApiResponse {
   // Add specific fields based on what your API returns

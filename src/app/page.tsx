@@ -1,5 +1,10 @@
 'use client'
 import { RefObject, useEffect, useRef, useState } from 'react'
+
+// Prevent static prerendering of this page
+export const dynamic = 'force-dynamic'
+// Prevent static generation during build
+export const runtime = 'edge'
 import Navbar from '../components/Navbar'
 import Welcome from '../components/Welcome'
 import PersonalizationQuiz, { usePersonalization } from '../components/AssessQuiz'
