@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { FaStar, FaQuoteLeft, FaQuoteRight, FaMapMarkerAlt, FaUser, FaEnvelope, FaComment } from 'react-icons/fa'
+import { FaStar, FaQuoteLeft, FaQuoteRight, FaMapMarkerAlt, FaUser, FaComment } from 'react-icons/fa'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 
@@ -17,7 +17,7 @@ interface Testimonial {
 
 const CommunityConnections: React.FC = () => {
   const t = useTranslations('community');
-  const [activeTab, setActiveTab] = useState<'testimonials' | 'directory' | 'share'>('testimonials')
+  const [activeTab, setActiveTab] = useState<'testimonials' | 'share'>('testimonials')
   const [newTestimonialForm, setNewTestimonialForm] = useState({
     name: '',
     location: '',
@@ -65,41 +65,7 @@ const CommunityConnections: React.FC = () => {
     },
   ]
   
-  // Sample community directory data
-  const communityDirectory = [
-    {
-      id: '1',
-      name: 'Family Support Network',
-      description: 'A network of families who have moved to higher opportunity areas and provide mentorship to new families.',
-      location: 'Boston Metro Area',
-      contact: 'support@familynetwork.org',
-      website: 'www.familysupportnetwork.org'
-    },
-    {
-      id: '2',
-      name: 'Community Integration Program',
-      description: 'Helps families integrate into new communities through social events, resource sharing, and community building.',
-      location: 'Greater Massachusetts',
-      contact: 'hello@communityintegration.org',
-      website: 'www.communityintegration.org'
-    },
-    {
-      id: '3',
-      name: 'Parent Advocacy Coalition',
-      description: 'A coalition of parents working to improve opportunities in underserved communities through advocacy and community organizing.',
-      location: 'Multiple Locations',
-      contact: 'info@parentadvocacy.org',
-      website: 'www.parentadvocacy.org'
-    },
-    {
-      id: '4',
-      name: 'Education Opportunity Alliance',
-      description: 'Connects families with educational resources, tutoring, and enrichment programs across different communities.',
-      location: 'Massachusetts',
-      contact: 'connect@eduopportunity.org',
-      website: 'www.eduopportunity.org'
-    },
-  ]
+
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -156,16 +122,6 @@ const CommunityConnections: React.FC = () => {
             }`}
           >
             {t('testimonials')}
-          </button>
-          <button
-            onClick={() => setActiveTab('directory')}
-            className={`px-5 py-2.5 text-sm font-medium ${
-              activeTab === 'directory'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            {t('communityDirectory')}
           </button>
           <button
             onClick={() => setActiveTab('share')}
@@ -226,48 +182,7 @@ const CommunityConnections: React.FC = () => {
         </div>
       )}
       
-      {/* Community Directory Tab */}
-      {activeTab === 'directory' && (
-        <div className="space-y-6">
-          {communityDirectory.map((org) => (
-            <div key={org.id} className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-semibold mb-2">{org.name}</h3>
-              <p className="text-gray-700 mb-4">{org.description}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center text-gray-600">
-                  <FaMapMarkerAlt className="mr-2 text-primary" />
-                  <span>{org.location}</span>
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <FaEnvelope className="mr-2 text-primary" />
-                  <a href={`mailto:${org.contact}`} className="hover:text-primary">{org.contact}</a>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <a 
-                  href={`https://${org.website}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90"
-                >
-                  Visit Website
-                </a>
-              </div>
-            </div>
-          ))}
-          
-          <div className="bg-gray-50 rounded-xl shadow-lg p-6 border-2 border-dashed border-gray-300 text-center">
-            <h3 className="text-xl font-semibold mb-2">Know a helpful community resource?</h3>
-            <p className="text-gray-700 mb-4">Help other families by adding it to our directory</p>
-            <button 
-              className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90"
-              onClick={() => setActiveTab('share')}
-            >
-              Suggest a Resource
-            </button>
-          </div>
-        </div>
-      )}
+
       
       {/* Share Your Story Tab */}
       {activeTab === 'share' && (
