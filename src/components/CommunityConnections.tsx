@@ -15,6 +15,31 @@ interface Testimonial {
   avatar?: string;
 }
 
+// Simple profanity list - in a real app, this would be more comprehensive and in a separate file
+const PROFANITY_LIST = ['fuck', 'shit', 'bitch', 'asshole', 'stupid', 'offensive', 'inappropriate'];
+
+const checkContent = (text: string): { isValid: boolean; reason?: string } => {
+  // Check for minimum length
+  if (text.length < 20) {
+    return { isValid: false, reason: 'Story must be at least 20 characters long' };
+  }
+
+  // Check for maximum length
+  if (text.length > 1000) {
+    return { isValid: false, reason: 'Story must not exceed 1000 characters' };
+  }
+
+  // Check for profanity
+  const containsProfanity = PROFANITY_LIST.some(word => 
+    text.toLowerCase().includes(word.toLowerCase())
+  );
+  if (containsProfanity) {
+    return { isValid: false, reason: 'Story contains inappropriate content' };
+  }
+
+  return { isValid: true };
+};
+
 const CommunityConnections: React.FC = () => {
   const t = useTranslations('community');
   const [activeTab, setActiveTab] = useState<'testimonials' | 'share'>('testimonials')
@@ -26,7 +51,7 @@ const CommunityConnections: React.FC = () => {
   })
   
   // Sample testimonials data
-  const testimonials: Testimonial[] = [
+  const initialTestimonials: Testimonial[] = [
     {
       id: '1',
       name: 'Sarah Johnson',
@@ -66,6 +91,7 @@ const CommunityConnections: React.FC = () => {
   ]
   
 
+  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(initialTestimonials);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -83,15 +109,43 @@ const CommunityConnections: React.FC = () => {
   }
   
   const handleSubmitTestimonial = (e: React.FormEvent) => {
-    e.preventDefault()
-    // In a real application, this would submit the testimonial to a backend
-    alert(t('testimonialSubmitMessage'))
+    e.preventDefault();
+    
+    // Check content
+    const contentCheck = checkContent(newTestimonialForm.text);
+    if (!contentCheck.isValid) {
+      alert(contentCheck.reason);
+      return;
+    }
+
+    // Create new testimonial
+    const newTestimonial: Testimonial = {
+      id: Date.now().toString(),
+      name: newTestimonialForm.name,
+      location: newTestimonialForm.location,
+      rating: newTestimonialForm.rating,
+      text: newTestimonialForm.text,
+      date: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    };
+
+    // Add to testimonials list
+    setTestimonialsList([newTestimonial, ...testimonialsList]);
+    
+    // Reset form
     setNewTestimonialForm({
       name: '',
       location: '',
       rating: 5,
       text: '',
-    })
+    });
+
+    // Switch to testimonials tab to show the new submission
+    setActiveTab('testimonials');
+    alert(t('testimonialSubmitMessage'));
   }
   
   const renderStars = (rating: number) => {
@@ -139,7 +193,7 @@ const CommunityConnections: React.FC = () => {
       {/* Testimonials Tab */}
       {activeTab === 'testimonials' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {testimonials.map((testimonial) => (
+          {testimonialsList.map((testimonial) => (
             <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-start mb-4">
                 <div className="flex-shrink-0 mr-4">
