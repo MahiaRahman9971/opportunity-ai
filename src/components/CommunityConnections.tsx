@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaStar, FaQuoteLeft, FaQuoteRight, FaMapMarkerAlt, FaUser, FaComment } from 'react-icons/fa'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
+import { db } from '../firebase/config'
+import { collection, addDoc, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore'
 
 interface Testimonial {
   id: string;
@@ -50,49 +52,36 @@ const CommunityConnections: React.FC = () => {
     text: '',
   })
   
-  // Sample testimonials data
-  const initialTestimonials: Testimonial[] = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      location: 'Brookline, MA',
-      rating: 5,
-      text: 'Moving to a higher opportunity neighborhood completely changed our lives. My children now attend excellent schools, and we\'ve connected with supportive community programs. This website guided us through the entire process!',
-      date: 'March 2, 2025',
-      avatar: '/avatars/sarah.svg'
-    },
-    {
-      id: '2',
-      name: 'Marcus Williams',
-      location: 'Cambridge, MA',
-      rating: 4,
-      text: 'As a single father, I was overwhelmed by the prospect of moving to provide better opportunities for my kids. The resources and step-by-step guidance here made it manageable. We\'ve been in our new community for 6 months, and my children are thriving.',
-      date: 'February 15, 2025',
-      avatar: '/avatars/marcus.svg'
-    },
-    {
-      id: '3',
-      name: 'Elena Rodriguez',
-      location: 'Somerville, MA',
-      rating: 5,
-      text: 'Instead of moving, we decided to stay and advocate for better resources in our community. The action plan helped us connect with local organizations and other parents. We\'ve already seen improvements in our neighborhood schools!',
-      date: 'January 28, 2025',
-      avatar: '/avatars/elena.svg'
-    },
-    {
-      id: '4',
-      name: 'David Chen',
-      location: 'Newton, MA',
-      rating: 5,
-      text: 'The opportunity map was eye-opening. We had no idea how much variation existed between neighborhoods so close to each other. We made an informed decision to move, and now my daughter has access to amazing STEM programs she loves.',
-      date: 'January 10, 2025',
-      avatar: '/avatars/david.svg'
-    },
-  ]
-  
+  // Initialize with empty array instead of sample data
+  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [testimonialsList, setTestimonialsList] = useState<Testimonial[]>(initialTestimonials);
-  
+  // Fetch testimonials from Firebase
+  useEffect(() => {
+    const testimonialQuery = query(
+      collection(db, 'testimonials'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(testimonialQuery, (snapshot) => {
+      const testimonials = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: new Date(doc.data().createdAt.toDate()).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      })) as Testimonial[];
+      
+      setTestimonialsList(testimonials);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription
+    return () => unsubscribe();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setNewTestimonialForm({
@@ -108,7 +97,7 @@ const CommunityConnections: React.FC = () => {
     })
   }
   
-  const handleSubmitTestimonial = (e: React.FormEvent) => {
+  const handleSubmitTestimonial = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Check content
@@ -118,34 +107,31 @@ const CommunityConnections: React.FC = () => {
       return;
     }
 
-    // Create new testimonial
-    const newTestimonial: Testimonial = {
-      id: Date.now().toString(),
-      name: newTestimonialForm.name,
-      location: newTestimonialForm.location,
-      rating: newTestimonialForm.rating,
-      text: newTestimonialForm.text,
-      date: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    };
+    try {
+      // Add testimonial to Firebase
+      await addDoc(collection(db, 'testimonials'), {
+        name: newTestimonialForm.name,
+        location: newTestimonialForm.location,
+        rating: newTestimonialForm.rating,
+        text: newTestimonialForm.text,
+        createdAt: Timestamp.now()
+      });
+      
+      // Reset form
+      setNewTestimonialForm({
+        name: '',
+        location: '',
+        rating: 5,
+        text: '',
+      });
 
-    // Add to testimonials list
-    setTestimonialsList([newTestimonial, ...testimonialsList]);
-    
-    // Reset form
-    setNewTestimonialForm({
-      name: '',
-      location: '',
-      rating: 5,
-      text: '',
-    });
-
-    // Switch to testimonials tab to show the new submission
-    setActiveTab('testimonials');
-    alert(t('testimonialSubmitMessage'));
+      // Switch to testimonials tab to show the new submission
+      setActiveTab('testimonials');
+      alert(t('testimonialSubmitMessage'));
+    } catch (error) {
+      console.error('Error adding testimonial:', error);
+      alert('Failed to submit testimonial. Please try again.');
+    }
   }
   
   const renderStars = (rating: number) => {
@@ -193,46 +179,57 @@ const CommunityConnections: React.FC = () => {
       {/* Testimonials Tab */}
       {activeTab === 'testimonials' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {testimonialsList.map((testimonial) => (
-            <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-start mb-4">
-                <div className="flex-shrink-0 mr-4">
-                  {testimonial.avatar ? (
-                    <Image 
-                      src={testimonial.avatar} 
-                      alt={`${testimonial.name}'s avatar`}
-                      width={48}
-                      height={48}
-                      className="rounded-full"
-                      style={{ backgroundColor: '#6CD9CA' }}
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center">
-                      <FaUser size={20} />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">{testimonial.name}</h3>
-                  <div className="flex items-center text-sm text-gray-600 mb-1">
-                    <FaMapMarkerAlt className="mr-1" />
-                    <span>{testimonial.location}</span>
-                  </div>
-                  <div className="flex">
-                    {renderStars(testimonial.rating)}
-                  </div>
-                </div>
-              </div>
-              <div className="mb-3 text-gray-700">
-                <FaQuoteLeft className="inline text-primary opacity-50 mr-2" size={12} />
-                {testimonial.text}
-                <FaQuoteRight className="inline text-primary opacity-50 ml-2" size={12} />
-              </div>
-              <div className="text-sm text-gray-500 text-right">
-                {testimonial.date}
-              </div>
+          {isLoading ? (
+            <div className="col-span-2 text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading testimonials...</p>
             </div>
-          ))}
+          ) : testimonialsList.length === 0 ? (
+            <div className="col-span-2 text-center py-8">
+              <p className="text-gray-600">No testimonials yet. Be the first to share your story!</p>
+            </div>
+          ) : (
+            testimonialsList.map((testimonial) => (
+              <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-6">
+                <div className="flex items-start mb-4">
+                  <div className="flex-shrink-0 mr-4">
+                    {testimonial.avatar ? (
+                      <Image 
+                        src={testimonial.avatar} 
+                        alt={`${testimonial.name}'s avatar`}
+                        width={48}
+                        height={48}
+                        className="rounded-full"
+                        style={{ backgroundColor: '#6CD9CA' }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center">
+                        <FaUser size={20} />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{testimonial.name}</h3>
+                    <div className="flex items-center text-sm text-gray-600 mb-1">
+                      <FaMapMarkerAlt className="mr-1" />
+                      <span>{testimonial.location}</span>
+                    </div>
+                    <div className="flex">
+                      {renderStars(testimonial.rating)}
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-3 text-gray-700">
+                  <FaQuoteLeft className="inline text-primary opacity-50 mr-2" size={12} />
+                  {testimonial.text}
+                  <FaQuoteRight className="inline text-primary opacity-50 ml-2" size={12} />
+                </div>
+                <div className="text-sm text-gray-500 text-right">
+                  {testimonial.date}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
       
