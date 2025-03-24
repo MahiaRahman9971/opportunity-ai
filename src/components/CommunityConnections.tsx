@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FaStar, FaQuoteLeft, FaQuoteRight, FaMapMarkerAlt, FaUser, FaComment } from 'react-icons/fa'
+import { FaStar, FaQuoteLeft, FaQuoteRight, FaMapMarkerAlt, FaUser, FaComment, FaTrash } from 'react-icons/fa'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { db } from '../firebase/config'
-import { collection, addDoc, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, query, orderBy, onSnapshot, Timestamp, deleteDoc, doc, getDocs, where } from 'firebase/firestore'
 
 interface Testimonial {
   id: string;
@@ -15,6 +15,7 @@ interface Testimonial {
   text: string;
   date: string;
   avatar?: string;
+  isSample?: boolean;
 }
 
 // Simple profanity list - in a real app, this would be more comprehensive and in a separate file
@@ -41,6 +42,42 @@ const checkContent = (text: string): { isValid: boolean; reason?: string } => {
 
   return { isValid: true };
 };
+
+// Sample testimonials data
+const sampleTestimonials = [
+  {
+    name: 'Sarah Johnson',
+    location: 'Brookline, MA',
+    rating: 5,
+    text: 'Moving to a higher opportunity neighborhood completely changed our lives. My children now attend excellent schools, and we\'ve connected with supportive community programs. This website guided us through the entire process!',
+    avatar: '/avatars/sarah.svg',
+    isSample: true
+  },
+  {
+    name: 'Marcus Williams',
+    location: 'Cambridge, MA',
+    rating: 4,
+    text: 'As a single father, I was overwhelmed by the prospect of moving to provide better opportunities for my kids. The resources and step-by-step guidance here made it manageable. We\'ve been in our new community for 6 months, and my children are thriving.',
+    avatar: '/avatars/marcus.svg',
+    isSample: true
+  },
+  {
+    name: 'Elena Rodriguez',
+    location: 'Somerville, MA',
+    rating: 5,
+    text: 'Instead of moving, we decided to stay and advocate for better resources in our community. The action plan helped us connect with local organizations and other parents. We\'ve already seen improvements in our neighborhood schools!',
+    avatar: '/avatars/elena.svg',
+    isSample: true
+  },
+  {
+    name: 'David Chen',
+    location: 'Newton, MA',
+    rating: 5,
+    text: 'The opportunity map was eye-opening. We had no idea how much variation existed between neighborhoods so close to each other. We made an informed decision to move, and now my daughter has access to amazing STEM programs she loves.',
+    avatar: '/avatars/david.svg',
+    isSample: true
+  }
+];
 
 const CommunityConnections: React.FC = () => {
   const t = useTranslations('community');
@@ -80,6 +117,27 @@ const CommunityConnections: React.FC = () => {
 
     // Cleanup subscription
     return () => unsubscribe();
+  }, []);
+
+  // Add sample testimonials if none exist
+  useEffect(() => {
+    const seedSampleTestimonials = async () => {
+      const testimonialsRef = collection(db, 'testimonials');
+      const sampleQuery = query(testimonialsRef, where('isSample', '==', true));
+      const snapshot = await getDocs(sampleQuery);
+      
+      if (snapshot.empty) {
+        // No sample testimonials exist, add them
+        for (const testimonial of sampleTestimonials) {
+          await addDoc(testimonialsRef, {
+            ...testimonial,
+            createdAt: Timestamp.now()
+          });
+        }
+      }
+    };
+
+    seedSampleTestimonials();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -134,6 +192,18 @@ const CommunityConnections: React.FC = () => {
     }
   }
   
+  const handleDeleteTestimonial = async (testimonialId: string) => {
+    if (window.confirm('Are you sure you want to delete this testimonial?')) {
+      try {
+        await deleteDoc(doc(db, 'testimonials', testimonialId));
+        alert('Testimonial deleted successfully');
+      } catch (error) {
+        console.error('Error deleting testimonial:', error);
+        alert('Failed to delete testimonial. Please try again.');
+      }
+    }
+  };
+
   const renderStars = (rating: number) => {
     return Array(5).fill(0).map((_, i) => (
       <FaStar 
@@ -190,7 +260,15 @@ const CommunityConnections: React.FC = () => {
             </div>
           ) : (
             testimonialsList.map((testimonial) => (
-              <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-6">
+              <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-6 relative">
+                {/* Add delete button */}
+                <button
+                  onClick={() => handleDeleteTestimonial(testimonial.id)}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Delete testimonial"
+                >
+                  <FaTrash size={16} />
+                </button>
                 <div className="flex items-start mb-4">
                   <div className="flex-shrink-0 mr-4">
                     {testimonial.avatar ? (

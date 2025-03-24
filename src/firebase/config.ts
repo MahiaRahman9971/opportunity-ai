@@ -3,13 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  // Replace these with your Firebase project configuration
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCaT9mgPIUSFqAVdEiWkVWUuUbtjmT-v1g",
+  authDomain: "opportunity-ai-be4b0.firebaseapp.com",
+  projectId: "opportunity-ai-be4b0",
+  storageBucket: "opportunity-ai-be4b0.firebasestorage.app",
+  messagingSenderId: "497102185515",
+  appId: "1:497102185515:web:3e476749492a5ca51cf66e"
 };
 
 // Initialize Firebase
