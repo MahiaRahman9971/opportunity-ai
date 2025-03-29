@@ -1017,7 +1017,7 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               {/* Religious Composition */}
               {Array.isArray(recommendations.communityDemographics.religiousComposition) && (
                 <div className="mt-8 mb-10">
-                  <h4 className="text-xl font-semibold mb-6 text-center">{t('religiousComposition')}</h4>
+                  <h4 className="text-xl font-semibold mb-6 text-center">Religious Composition</h4>
                   
                   <div className="flex flex-wrap justify-center gap-4 mb-6">
                     {recommendations.communityDemographics.religiousComposition
@@ -1032,27 +1032,27 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
                             case "christian": 
                               iconColor = "text-[#34687e]"; // accent11
                               iconPath = "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z";
-                              religionData.displayName = t('christian');
+                              religionData.displayName = "Christian";
                               break;
                             case "jewish": 
                               iconColor = "text-[#4f7f8b]"; // accent10
-                              religionData.displayName = t('jewish');
+                              religionData.displayName = "Jewish";
                               iconPath = "M12 22l-3.5-6.5L2 12l6.5-3.5L12 2l3.5 6.5L22 12l-6.5 3.5L12 22z";
                               break;
                             case "muslim": 
                               iconColor = "text-[#729d9d]"; // accent9
                               iconPath = "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-18a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zm-3-6a3 3 0 106 0 3 3 0 00-6 0z";
-                              religionData.displayName = t('muslim');
+                              religionData.displayName = "Muslim";
                               break;
                             case "hindu": 
                               iconColor = "text-[#d07e59]"; // accent3
                               iconPath = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7v-2z";
-                              religionData.displayName = t('hindu');
+                              religionData.displayName = "Hindu";
                               break;
                             case "non-religious": 
                               iconColor = "text-[#9dbda9]"; // accent8
                               iconPath = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z";
-                              religionData.displayName = t('nonReligious');
+                              religionData.displayName = "Non-Religious";
                               break;
                             default: 
                               iconColor = "text-[#b65441]"; // accent2
@@ -1085,24 +1085,24 @@ const Move: React.FC<MoveProps> = ({ onSaveChoices, assessmentData }) => {
               {/* Additional Demographics */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="text-xl font-semibold mb-4">{t('populationOverview')}</h4>
+                  <h4 className="text-xl font-semibold mb-4">Population Overview</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>{t('totalPopulation')}:</span>
+                      <span>Total Population:</span>
                       <span>{formatNumber(recommendations.communityDemographics.population)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>{t('medianAge')}:</span>
+                      <span>Median Age:</span>
                       <span>{recommendations.communityDemographics.medianAge || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>{t('medianHouseholdIncome')}:</span>
+                      <span>Median Household Income:</span>
                       <span>${formatNumber(recommendations.communityDemographics.medianHousehold)}</span>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xl font-semibold mb-4">{t('educationLevels')}</h4>
+                  <h4 className="text-xl font-semibold mb-4">Education Levels</h4>
                   <div className="space-y-2">
                     {Array.isArray(recommendations.communityDemographics.educationLevel) && 
                       recommendations.communityDemographics.educationLevel.map((level) => {
